@@ -8,7 +8,11 @@ const appEnvSchema = z.object({
   REDIS_URL: z.string().optional(),
   JWT_SECRET: z.string().optional(),
   ENCRYPTION_SECRET: z.string().optional(),
-  AI_PROVIDER_KEY: z.string().optional()
+  AI_PROVIDER_KEY: z.string().optional(),
+  BILLING_PROVIDER: z.enum(["stripe"]).optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  TRIAL_DAYS: z.coerce.number().int().positive().optional()
 });
 
 export type AppEnv = z.infer<typeof appEnvSchema>;

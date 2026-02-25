@@ -20,6 +20,19 @@ The full PRD (including MVP scope, API contracts, non-functional requirements, a
 
 - `docs/product-requirements.md`
 
+Commercial model details are tracked in:
+
+- `docs/billing-model.md`
+
+## Commercial model
+
+- One billing engine with two offers:
+  - Cloud Pro (self-serve)
+  - Enterprise (sales-led)
+- No permanent free cloud plan. Cloud onboarding is trial-first.
+- AI is metered by workspace quota/credits, not unlimited by default.
+- Self-hosted deployments remain supported; paid self-host is part of enterprise licensing strategy.
+
 ## MVP scope
 
 - OAuth-only auth (GitHub + Google)
@@ -65,6 +78,7 @@ All backend routes are under `/api/v1`.
 - Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables/:table`
 - Queries: `/workspaces/:id/query`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
 - AI: `/ai/generate-sql`, `/ai/explain-query`
+- Billing: `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`
 
 ## Local development
 
@@ -103,6 +117,10 @@ All backend routes are under `/api/v1`.
 - `ENCRYPTION_SECRET`
 - `AI_PROVIDER_KEY`
 - `APP_DATABASE_URL`
+- `BILLING_PROVIDER`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `TRIAL_DAYS`
 
 ## Docker
 
@@ -119,6 +137,7 @@ Scaffolded deployment files are in `tooling/docker/`:
 - [Security policy](./security-policy.md)
 - [Support guide](./support-guide.md)
 - [Changelog](./changelog.md)
+- [Billing model](./docs/billing-model.md)
 - [License](./LICENSE)
 
 ## Status

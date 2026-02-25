@@ -13,6 +13,7 @@ It enables teams to connect, explore, query, and manage relational databases fro
 - Backend: Node.js + Hono
 - AI: LLM-powered SQL generation/explanation
 - Initial database support: PostgreSQL
+- Commercial strategy: trial-first cloud, paid seats, enterprise plan
 
 The landing page lives in `apps/gui` at route `/`, isolated from workspace dashboards.
 
@@ -105,6 +106,17 @@ Located in `packages/ai-engine` and responsible for:
 - Schema-aware prompt context
 - Provider configuration, logging, and throttling
 
+### 3.6 Billing and subscription layer
+
+- One billing engine supporting two offers:
+  - Cloud Pro (self-serve)
+  - Enterprise (sales-led)
+- No permanent free cloud tier
+- Trial-first onboarding for new cloud workspaces
+- Seat-based subscriptions with workspace-level ownership
+- AI usage metering and quota checks per workspace
+- Optional enterprise paid self-host licensing path
+
 ## 4. Authentication and authorization
 
 - OAuth-only login (GitHub and Google)
@@ -179,6 +191,14 @@ All routes under `/api/v1`.
 
 - `POST /ai/generate-sql`
 - `POST /ai/explain-query`
+
+### Billing
+
+- `GET /billing/plans`
+- `POST /billing/checkout-session`
+- `POST /billing/portal-session`
+- `GET /billing/workspace/:workspaceId/subscription`
+- `GET /billing/workspace/:workspaceId/usage`
 
 All endpoints protected by OAuth JWT session middleware.
 
@@ -266,6 +286,10 @@ All endpoints protected by OAuth JWT session middleware.
   - `JWT_SECRET`
   - `ENCRYPTION_SECRET`
   - `AI_PROVIDER_KEY`
+  - `BILLING_PROVIDER`
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `TRIAL_DAYS`
 
 ## 11. MVP acceptance criteria
 
@@ -277,6 +301,9 @@ All endpoints protected by OAuth JWT session middleware.
 - User can save queries
 - AI can generate and explain SQL
 - Query history logs correctly per workspace
+- Trial starts on cloud workspace creation and paywall is enforced post-trial
+- Seat counts are enforced on membership acceptance
+- AI usage is metered with per-plan quota enforcement
 - Nx modular boundaries are enforced
 - Docker Compose deployment works
 - Tooling folder includes setup, deployment, and CI/CD scripts
@@ -290,3 +317,4 @@ All endpoints protected by OAuth JWT session middleware.
 - ER diagram generation
 - Plugin architecture
 - Desktop client (Tauri)
+- Annual usage commitments and enterprise invoicing automation
