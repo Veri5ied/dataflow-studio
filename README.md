@@ -1,0 +1,126 @@
+# DataFlow Studio
+
+DataFlow Studio is a self-hosted, open-source, AI-powered collaborative database studio for teams working with relational databases.
+
+## UI decision
+
+The project standard is **shadcn/ui with Base UI** primitives.
+
+- `packages/ui` is the shared component layer.
+- `apps/gui` consumes shared primitives/components.
+- UI should follow shadcn-style composition patterns and tokenized Tailwind design.
+- Base UI primitives are the default low-level building blocks for accessibility and behavior.
+
+Implementation details and conventions are documented in:
+- `docs/ui-system.md`
+
+## Product requirements and roadmap
+
+The full PRD (including MVP scope, API contracts, non-functional requirements, and future roadmap) is tracked in:
+
+- `docs/product-requirements.md`
+
+## MVP scope
+
+- OAuth-only auth (GitHub + Google)
+- Workspace-based collaboration model
+- PostgreSQL connection management
+- Schema explorer and table metadata
+- SQL editor and query execution flow
+- Query history and saved queries
+- AI SQL generation and SQL explanation
+- Docker-first self-hosting path
+
+## Monorepo layout
+
+```text
+dataflow-studio/
+  apps/
+    gui/                    # Next.js web app (landing page + workspace views)
+    api/                    # Hono API
+  packages/
+    ui/                     # Shared UI components (shadcn + Base UI)
+    db-connectors/          # DB connector abstractions
+    ai-engine/              # AI orchestration layer
+    shared-types/           # Shared TS interfaces
+    config/                 # Shared env/config utilities
+    utils/                  # Logging, encryption, cache utilities
+  tooling/
+    docker/
+    ci-cd/
+    k8s/
+    scripts/
+    eslint/
+    tsconfig/
+    prettier/
+  docs/
+```
+
+## API routes (MVP)
+
+All backend routes are under `/api/v1`.
+
+- Auth: `/auth/oauth/github`, `/auth/oauth/google`, `/auth/oauth/callback`
+- Workspaces: `/workspaces`, `/workspaces/:id/connect-db`
+- Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables/:table`
+- Queries: `/workspaces/:id/query`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
+- AI: `/ai/generate-sql`, `/ai/explain-query`
+
+## Local development
+
+### Prerequisites
+
+- Node.js 22+
+- pnpm 9+
+
+### Setup
+
+1. Create env file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+3. Run GUI:
+   ```bash
+   pnpm dev:gui
+   ```
+4. Run API:
+   ```bash
+   pnpm dev:api
+   ```
+
+## Required environment variables
+
+- `OAUTH_GITHUB_CLIENT_ID`
+- `OAUTH_GITHUB_CLIENT_SECRET`
+- `OAUTH_GOOGLE_CLIENT_ID`
+- `OAUTH_GOOGLE_CLIENT_SECRET`
+- `REDIS_URL`
+- `JWT_SECRET`
+- `ENCRYPTION_SECRET`
+- `AI_PROVIDER_KEY`
+- `APP_DATABASE_URL`
+
+## Docker
+
+Scaffolded deployment files are in `tooling/docker/`:
+
+- `Dockerfile.gui`
+- `Dockerfile.api`
+- `docker-compose.yml`
+
+## Project docs
+
+- [Contributor guide](./contributors-guide.md)
+- [Code of conduct](./code-of-conduct.md)
+- [Security policy](./security-policy.md)
+- [Support guide](./support-guide.md)
+- [Changelog](./changelog.md)
+- [License](./LICENSE)
+
+## Status
+
+Repository status is scaffold-first from the PRD. Core flows are stubbed and ready for implementation phases.

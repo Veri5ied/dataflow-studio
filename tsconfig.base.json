@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@dataflow/ui": ["packages/ui/src/index.ts"],
+      "@dataflow/db-connectors": ["packages/db-connectors/src/index.ts"],
+      "@dataflow/ai-engine": ["packages/ai-engine/src/index.ts"],
+      "@dataflow/shared-types": ["packages/shared-types/src/index.ts"],
+      "@dataflow/config": ["packages/config/src/index.ts"],
+      "@dataflow/utils": ["packages/utils/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

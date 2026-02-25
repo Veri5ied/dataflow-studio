@@ -1,0 +1,5 @@
+# DataFlow Studio API scaffold Dockerfile
+FROM node:22-alpine
+WORKDIR /app
+COPY . .
+CMD ["sh", "-c", "echo 'API container scaffold. Add runtime build steps.' && sleep infinity"]

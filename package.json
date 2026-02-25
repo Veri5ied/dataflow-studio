@@ -1,0 +1,22 @@
+{
+  "name": "dataflow-studio",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "dev:gui": "nx run gui:dev",
+    "dev:api": "nx run api:dev",
+    "build": "nx run-many -t build",
+    "lint": "nx run-many -t lint",
+    "test": "nx run-many -t test",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@nx/js": "^20.4.6",
+    "@nx/workspace": "^20.4.6",
+    "nx": "^20.4.6",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

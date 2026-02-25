@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dataflow-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dataflow-api
+  template:
+    metadata:
+      labels:
+        app: dataflow-api
+    spec:
+      containers:
+        - name: api
+          image: dataflow/api:latest
+          ports:
+            - containerPort: 3001

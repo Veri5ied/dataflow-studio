@@ -1,0 +1,30 @@
+stages:
+  - install
+  - lint
+  - test
+  - build
+
+install:
+  stage: install
+  image: node:22-alpine
+  script:
+    - corepack enable
+    - pnpm install
+
+lint:
+  stage: lint
+  image: node:22-alpine
+  script:
+    - pnpm lint
+
+test:
+  stage: test
+  image: node:22-alpine
+  script:
+    - pnpm test
+
+build:
+  stage: build
+  image: node:22-alpine
+  script:
+    - pnpm build
