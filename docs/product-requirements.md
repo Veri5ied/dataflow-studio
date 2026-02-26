@@ -80,6 +80,7 @@ Reference: `docs/ui-system.md`
 
 - Hono
 - REST API (GraphQL optional later)
+- Drizzle ORM (typed query layer)
 - Zod validation
 - Redis for caching, AI throttling, session support
 - Connection pooling for external DBs
@@ -89,11 +90,16 @@ Reference: `docs/ui-system.md`
 ### 3.4 Internal app database
 
 - PostgreSQL for app-level metadata:
-  - Workspaces
-  - OAuth users
-  - Saved queries
-  - Query history
-  - AI logs
+  - users
+  - workspaces
+  - workspace_memberships
+  - db_connections
+  - saved_queries
+  - query_history
+  - billing_accounts
+  - subscriptions
+  - usage_counters
+  - webhook_events
 - Redis for ephemeral/session/cache workloads
 
 ### 3.5 AI engine
@@ -248,6 +254,7 @@ All endpoints protected by OAuth JWT session middleware.
 - Migrations and seeding
 - Setup helpers
 - Local bootstrap
+- Runtime migration application remains SQL-first; schema evolution can be generated via Drizzle kit
 
 ## 9. Non-functional requirements
 

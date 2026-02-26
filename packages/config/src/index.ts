@@ -5,6 +5,7 @@ const appEnvSchema = z.object({
   OAUTH_GITHUB_CLIENT_SECRET: z.string().optional(),
   OAUTH_GOOGLE_CLIENT_ID: z.string().optional(),
   OAUTH_GOOGLE_CLIENT_SECRET: z.string().optional(),
+  APP_DATABASE_URL: z.string().url().optional(),
   REDIS_URL: z.string().optional(),
   JWT_SECRET: z.string().optional(),
   ENCRYPTION_SECRET: z.string().optional(),

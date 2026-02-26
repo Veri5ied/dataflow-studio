@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const envSchema = z.object({
+  APP_DATABASE_URL: z.string().url().optional(),
   REDIS_URL: z.string().url().optional(),
   JWT_SECRET: z.string().min(1).optional(),
   ENCRYPTION_SECRET: z.string().min(1).optional(),

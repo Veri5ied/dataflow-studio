@@ -23,6 +23,7 @@ The full PRD (including MVP scope, API contracts, non-functional requirements, a
 Commercial model details are tracked in:
 
 - `docs/billing-model.md`
+- `docs/migration-strategy.md`
 
 ## Commercial model
 
@@ -39,6 +40,7 @@ Commercial model details are tracked in:
 - OAuth-only auth (GitHub + Google)
 - Workspace-based collaboration model
 - PostgreSQL connection management
+- API data layer with Drizzle ORM and SQL migrations
 - Schema explorer and table metadata
 - SQL editor and query execution flow
 - Query history and saved queries
@@ -98,11 +100,19 @@ All backend routes are under `/api/v1`.
    ```bash
    pnpm install
    ```
-3. Run GUI:
+3. Run database migrations:
+   ```bash
+   pnpm db:migrate
+   ```
+4. Optional seed data:
+   ```bash
+   pnpm db:seed
+   ```
+5. Run GUI:
    ```bash
    pnpm dev:gui
    ```
-4. Run API:
+6. Run API:
    ```bash
    pnpm dev:api
    ```

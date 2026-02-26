@@ -7,12 +7,14 @@ import { schemaRoutes } from "./routes/v1/schema";
 import { queryRoutes } from "./routes/v1/queries";
 import { aiRoutes } from "./routes/v1/ai";
 import { billingRoutes } from "./routes/v1/billing";
+import { billingWebhookRoutes } from "./routes/v1/billing-webhooks";
 
 const app = new Hono();
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.route("/api/v1/auth", authRoutes);
+app.route("/api/v1/billing/webhook", billingWebhookRoutes);
 app.use("/api/v1/*", requireAuth);
 app.route("/api/v1/workspaces", workspaceRoutes);
 app.route("/api/v1/workspaces", schemaRoutes);
