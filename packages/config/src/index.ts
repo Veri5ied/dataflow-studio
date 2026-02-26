@@ -9,9 +9,12 @@ const appEnvSchema = z.object({
   JWT_SECRET: z.string().optional(),
   ENCRYPTION_SECRET: z.string().optional(),
   AI_PROVIDER_KEY: z.string().optional(),
-  BILLING_PROVIDER: z.enum(["stripe"]).optional(),
+  BILLING_PROVIDER: z.enum(["stripe", "polar"]).optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  POLAR_ACCESS_TOKEN: z.string().optional(),
+  POLAR_ORGANIZATION_ID: z.string().optional(),
+  POLAR_WEBHOOK_SECRET: z.string().optional(),
   TRIAL_DAYS: z.coerce.number().int().positive().optional()
 });
 

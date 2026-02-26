@@ -37,6 +37,8 @@ All routes are grouped under `/api/v1` in the API app.
 - `POST /billing/portal-session`
 - `GET /billing/workspace/:workspaceId/subscription`
 - `GET /billing/workspace/:workspaceId/usage`
+- `POST /billing/webhook/stripe`
+- `POST /billing/webhook/polar`
 
 ## Access control
 

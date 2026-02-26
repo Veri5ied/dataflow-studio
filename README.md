@@ -29,6 +29,7 @@ Commercial model details are tracked in:
 - One billing engine with two offers:
   - Cloud Pro (self-serve)
   - Enterprise (sales-led)
+- Billing providers: Stripe or Polar (polar.sh)
 - No permanent free cloud plan. Cloud onboarding is trial-first.
 - AI is metered by workspace quota/credits, not unlimited by default.
 - Self-hosted deployments remain supported; paid self-host is part of enterprise licensing strategy.
@@ -78,7 +79,7 @@ All backend routes are under `/api/v1`.
 - Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables/:table`
 - Queries: `/workspaces/:id/query`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
 - AI: `/ai/generate-sql`, `/ai/explain-query`
-- Billing: `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`
+- Billing: `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`, `/billing/webhook/stripe`, `/billing/webhook/polar`
 
 ## Local development
 
@@ -120,6 +121,9 @@ All backend routes are under `/api/v1`.
 - `BILLING_PROVIDER`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `POLAR_ACCESS_TOKEN`
+- `POLAR_ORGANIZATION_ID`
+- `POLAR_WEBHOOK_SECRET`
 - `TRIAL_DAYS`
 
 ## Docker

@@ -11,3 +11,4 @@ All notable changes to this project will be documented in this file.
 - Shared package boundaries (`ui`, `db-connectors`, `ai-engine`, `shared-types`, `config`, `utils`)
 - Tooling scaffold for Docker, CI/CD, k8s, and scripts
 - Project documentation baseline and contributor/policy docs
+- Billing model docs, Polar provider support, and billing API scaffolds

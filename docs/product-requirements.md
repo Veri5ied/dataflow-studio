@@ -111,6 +111,7 @@ Located in `packages/ai-engine` and responsible for:
 - One billing engine supporting two offers:
   - Cloud Pro (self-serve)
   - Enterprise (sales-led)
+- Billing providers: Stripe or Polar (polar.sh)
 - No permanent free cloud tier
 - Trial-first onboarding for new cloud workspaces
 - Seat-based subscriptions with workspace-level ownership
@@ -286,10 +287,13 @@ All endpoints protected by OAuth JWT session middleware.
   - `JWT_SECRET`
   - `ENCRYPTION_SECRET`
   - `AI_PROVIDER_KEY`
-  - `BILLING_PROVIDER`
-  - `STRIPE_SECRET_KEY`
-  - `STRIPE_WEBHOOK_SECRET`
-  - `TRIAL_DAYS`
+- `BILLING_PROVIDER`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `POLAR_ACCESS_TOKEN`
+- `POLAR_ORGANIZATION_ID`
+- `POLAR_WEBHOOK_SECRET`
+- `TRIAL_DAYS`
 
 ## 11. MVP acceptance criteria
 

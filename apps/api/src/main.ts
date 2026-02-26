@@ -6,6 +6,7 @@ import { workspaceRoutes } from "./routes/v1/workspaces";
 import { schemaRoutes } from "./routes/v1/schema";
 import { queryRoutes } from "./routes/v1/queries";
 import { aiRoutes } from "./routes/v1/ai";
+import { billingRoutes } from "./routes/v1/billing";
 
 const app = new Hono();
 
@@ -17,6 +18,7 @@ app.route("/api/v1/workspaces", workspaceRoutes);
 app.route("/api/v1/workspaces", schemaRoutes);
 app.route("/api/v1/workspaces", queryRoutes);
 app.route("/api/v1/ai", aiRoutes);
+app.route("/api/v1/billing", billingRoutes);
 
 const port = Number(process.env.PORT ?? 3001);
 

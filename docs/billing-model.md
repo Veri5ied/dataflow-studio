@@ -2,7 +2,17 @@
 
 ## Commercial strategy
 
-DataFlow Studio uses one billing engine with two commercial offers:
+DataFlow Studio uses one billing engine with two commercial offers.
+
+Supported billing providers:
+
+- Stripe
+- Polar (polar.sh)
+
+Required provider env vars:
+
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Polar: `POLAR_ACCESS_TOKEN`, `POLAR_ORGANIZATION_ID`, `POLAR_WEBHOOK_SECRET`
 
 1. Cloud Pro (self-serve)
 2. Enterprise (sales-led)
