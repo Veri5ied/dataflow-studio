@@ -43,4 +43,6 @@ All routes are grouped under `/api/v1` in the API app.
 ## Access control
 
 - OAuth routes are public entry points.
-- Workspace, schema, query, AI, and billing routes require authenticated session middleware.
+- Billing webhook routes are public (`/billing/webhook/*`).
+- Workspace, schema, query, AI, and non-webhook billing routes require authenticated session middleware.
+- Current scaffold expects authenticated user id in header `x-user-id` (UUID) on protected routes.

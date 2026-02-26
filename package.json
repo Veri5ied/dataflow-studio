@@ -7,6 +7,8 @@
   "scripts": {
     "dev:gui": "nx run gui:dev",
     "dev:api": "nx run api:dev",
+    "db:migrate": "./tooling/scripts/migrate.sh",
+    "db:seed": "./tooling/scripts/seed.sh",
     "build": "nx run-many -t build",
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",

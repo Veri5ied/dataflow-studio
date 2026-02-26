@@ -1,17 +1,33 @@
+import "dotenv/config";
 import { z } from "zod";
 
+const emptyStringToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const optionalUrl = z.preprocess(emptyStringToUndefined, z.string().url().optional());
+const optionalNonEmptyString = z.preprocess(emptyStringToUndefined, z.string().min(1).optional());
+const optionalBillingProvider = z.preprocess(
+  emptyStringToUndefined,
+  z.enum(["stripe", "polar"]).optional()
+);
+const optionalPositiveInt = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce.number().int().positive().optional()
+);
+
 const envSchema = z.object({
-  REDIS_URL: z.string().url().optional(),
-  JWT_SECRET: z.string().min(1).optional(),
-  ENCRYPTION_SECRET: z.string().min(1).optional(),
-  AI_PROVIDER_KEY: z.string().min(1).optional(),
-  BILLING_PROVIDER: z.enum(["stripe", "polar"]).optional(),
-  STRIPE_SECRET_KEY: z.string().min(1).optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
-  POLAR_ACCESS_TOKEN: z.string().min(1).optional(),
-  POLAR_ORGANIZATION_ID: z.string().min(1).optional(),
-  POLAR_WEBHOOK_SECRET: z.string().min(1).optional(),
-  TRIAL_DAYS: z.coerce.number().int().positive().optional()
+  APP_DATABASE_URL: optionalUrl,
+  REDIS_URL: optionalUrl,
+  JWT_SECRET: optionalNonEmptyString,
+  ENCRYPTION_SECRET: optionalNonEmptyString,
+  AI_PROVIDER_KEY: optionalNonEmptyString,
+  BILLING_PROVIDER: optionalBillingProvider,
+  STRIPE_SECRET_KEY: optionalNonEmptyString,
+  STRIPE_WEBHOOK_SECRET: optionalNonEmptyString,
+  POLAR_ACCESS_TOKEN: optionalNonEmptyString,
+  POLAR_ORGANIZATION_ID: optionalNonEmptyString,
+  POLAR_WEBHOOK_SECRET: optionalNonEmptyString,
+  TRIAL_DAYS: optionalPositiveInt
 });
 
 export const env = envSchema.parse(process.env);
