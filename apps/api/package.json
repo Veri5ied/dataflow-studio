@@ -20,6 +20,8 @@
     "@dataflow/db-connectors": "workspace:*",
     "@dataflow/shared-types": "workspace:*",
     "@dataflow/utils": "workspace:*",
+    "@hono/node-server": "^1.19.9",
+    "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.6.12",
     "ioredis": "^5.4.2",

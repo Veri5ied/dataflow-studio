@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 import { logger } from "@dataflow/utils";
 import { requireAuth } from "./lib/auth";
 import { authRoutes } from "./routes/v1/auth";
@@ -24,9 +25,9 @@ app.route("/api/v1/billing", billingRoutes);
 
 const port = Number(process.env.PORT ?? 3001);
 
-export default {
-  port,
-  fetch: app.fetch
-};
+serve({
+  fetch: app.fetch,
+  port
+});
 
-logger.info({ port }, "DataFlow API scaffold ready");
+logger.info({ port }, "DataFlow API listening");

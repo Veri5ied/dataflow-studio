@@ -2,8 +2,20 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 SEEDS_DIR="${SEEDS_DIR:-$ROOT_DIR/apps/api/db/seeds}"
+
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 DATABASE_URL="${APP_DATABASE_URL:-}"
+if [[ "$DATABASE_URL" == *"?schema="* ]]; then
+  DATABASE_URL="${DATABASE_URL%%\?schema=*}"
+fi
 
 if [[ -z "$DATABASE_URL" ]]; then
   echo "APP_DATABASE_URL is required to run seeds." >&2
@@ -20,7 +32,9 @@ if [[ ! -d "$SEEDS_DIR" ]]; then
   exit 1
 fi
 
-mapfile -t SEED_FILES < <(find "$SEEDS_DIR" -maxdepth 1 -type f -name "*.sql" | sort)
+shopt -s nullglob
+SEED_FILES=("$SEEDS_DIR"/*.sql)
+shopt -u nullglob
 
 if [[ ${#SEED_FILES[@]} -eq 0 ]]; then
   echo "No seed files found in $SEEDS_DIR"

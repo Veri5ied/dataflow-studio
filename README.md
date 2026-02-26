@@ -156,4 +156,8 @@ Scaffolded deployment files are in `tooling/docker/`:
 
 ## Status
 
-Repository status is scaffold-first from the PRD. Core flows are stubbed and ready for implementation phases.
+Repository is in `api-foundation-v1` implementation mode.
+
+- Internal DB schema + migrations are implemented (SQL-first runtime, Drizzle schema/query layer).
+- Workspace and billing API routes are wired to repositories/services with real DB reads/writes.
+- Remaining major milestones: OAuth/session core, query engine execution/cancel flow, AI guardrails, and hardening.
