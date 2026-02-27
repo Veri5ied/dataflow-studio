@@ -293,7 +293,10 @@ All endpoints protected by OAuth JWT session middleware.
   - `REDIS_URL`
   - `JWT_SECRET`
   - `ENCRYPTION_SECRET`
-  - `AI_PROVIDER_KEY`
+  - `AI_DEFAULT_PROVIDER` (optional)
+  - `AI_DEFAULT_MODEL` (optional)
+  - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` (optional, based on provider)
+  - `AI_OPENAI_COMPATIBLE_API_KEY` / `AI_OPENAI_COMPATIBLE_BASE_URL` (optional, for OpenAI-compatible endpoints)
 - `BILLING_PROVIDER`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`

@@ -12,6 +12,7 @@ The project standard is **shadcn/ui with Base UI** primitives.
 - Base UI primitives are the default low-level building blocks for accessibility and behavior.
 
 Implementation details and conventions are documented in:
+
 - `docs/ui-system.md`
 
 ## Product requirements and roadmap
@@ -128,7 +129,15 @@ All backend routes are under `/api/v1`.
 - `REDIS_URL`
 - `JWT_SECRET`
 - `ENCRYPTION_SECRET`
-- `AI_PROVIDER_KEY`
+- `AI_DEFAULT_PROVIDER` (optional)
+- `AI_DEFAULT_MODEL` (optional)
+- `AI_DEFAULT_TEMPERATURE` (optional)
+- `OPENAI_API_KEY` (optional)
+- `ANTHROPIC_API_KEY` (optional)
+- `GOOGLE_GENERATIVE_AI_API_KEY` (optional)
+- `AI_OPENAI_COMPATIBLE_API_KEY` (optional)
+- `AI_OPENAI_COMPATIBLE_BASE_URL` (optional)
+- `AI_PROVIDER_KEY` (legacy fallback, optional)
 - `APP_DATABASE_URL`
 - `BILLING_PROVIDER`
 - `STRIPE_SECRET_KEY`
@@ -165,5 +174,5 @@ Repository is in `api-foundation-v1` with `auth-session-core` implementation mod
 - OAuth/session core is implemented with GitHub/Google callback exchange and JWT-protected API middleware.
 - Workspace membership flow includes invite/accept endpoints with seat-limit enforcement.
 - DB connection test/save and PostgreSQL schema/table metadata endpoints are implemented.
-- Query engine execution/cancel, AI usage guardrails, billing webhook sync, and API rate limiting are implemented.
+- Query engine execution/cancel, AI usage guardrails with real provider SDK integration, billing webhook sync, and API rate limiting are implemented.
 - Remaining major milestones: GUI workspace flows and end-to-end product polish.

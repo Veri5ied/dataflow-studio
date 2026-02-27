@@ -23,5 +23,6 @@ All notable changes to this project will be documented in this file.
 - Upgraded at-rest credential encryption to AES-256-GCM with legacy compatibility
 - Query engine service with execution, cancellation, pagination, history logging, and saved queries persistence
 - AI endpoints with usage quota guardrails, metering, and persistent ai_logs audit entries
+- Real multi-provider AI execution via Vercel AI SDK (`openai`, `anthropic`, `google`, and `openai-compatible`) with per-request model selection
 - Billing webhook verification/idempotency and subscription sync processing
 - API hardening: request IDs, route rate-limiting, and automated backend tests

@@ -10,9 +10,17 @@ const optionalBillingProvider = z.preprocess(
   emptyStringToUndefined,
   z.enum(["stripe", "polar"]).optional()
 );
+const optionalAiProvider = z.preprocess(
+  emptyStringToUndefined,
+  z.enum(["openai", "anthropic", "google", "openai-compatible"]).optional(),
+);
 const optionalPositiveInt = z.preprocess(
   emptyStringToUndefined,
   z.coerce.number().int().positive().optional()
+);
+const optionalAiTemperature = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce.number().min(0).max(2).optional(),
 );
 
 const envSchema = z.object({
@@ -31,6 +39,14 @@ const envSchema = z.object({
   JWT_SECRET: optionalNonEmptyString,
   ENCRYPTION_SECRET: optionalNonEmptyString,
   AI_PROVIDER_KEY: optionalNonEmptyString,
+  AI_DEFAULT_PROVIDER: optionalAiProvider,
+  AI_DEFAULT_MODEL: optionalNonEmptyString,
+  AI_DEFAULT_TEMPERATURE: optionalAiTemperature,
+  OPENAI_API_KEY: optionalNonEmptyString,
+  ANTHROPIC_API_KEY: optionalNonEmptyString,
+  GOOGLE_GENERATIVE_AI_API_KEY: optionalNonEmptyString,
+  AI_OPENAI_COMPATIBLE_API_KEY: optionalNonEmptyString,
+  AI_OPENAI_COMPATIBLE_BASE_URL: optionalUrl,
   BILLING_PROVIDER: optionalBillingProvider,
   STRIPE_SECRET_KEY: optionalNonEmptyString,
   STRIPE_WEBHOOK_SECRET: optionalNonEmptyString,

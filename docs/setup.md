@@ -94,7 +94,9 @@
      ```json
      {
        "workspaceId": "{workspaceId}",
-       "instruction": "show all users created in the last 7 days"
+       "instruction": "show all users created in the last 7 days",
+       "provider": "openai",
+       "model": "gpt-4.1-mini"
      }
      ```
 2. Explain query:
@@ -103,10 +105,24 @@
      ```json
      {
        "workspaceId": "{workspaceId}",
-       "sqlText": "select * from users limit 10"
+       "sqlText": "select * from users limit 10",
+       "provider": "anthropic",
+       "model": "claude-3-5-sonnet-latest"
      }
      ```
-3. Validate local automated tests:
+3. OpenAI-compatible provider (OpenRouter, local gateway, etc):
+   - `POST http://localhost:3001/api/v1/ai/generate-sql`
+   - Body:
+     ```json
+     {
+       "workspaceId": "{workspaceId}",
+       "instruction": "top 5 slow queries from query_history",
+       "provider": "openai-compatible",
+       "model": "meta-llama/llama-3.1-70b-instruct",
+       "baseUrl": "https://openrouter.ai/api/v1"
+     }
+     ```
+4. Validate local automated tests:
    - `pnpm --filter @dataflow/api test`
 
 Migration policy is documented in `docs/migration-strategy.md`.

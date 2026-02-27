@@ -91,7 +91,9 @@
   ```json
   {
     "workspaceId": "{{workspaceId}}",
-    "instruction": "list active users"
+    "instruction": "list active users",
+    "provider": "openai",
+    "model": "gpt-4.1-mini"
   }
   ```
 - Expect:
@@ -105,14 +107,33 @@
   ```json
   {
     "workspaceId": "{{workspaceId}}",
-    "sqlText": "select * from users limit 10"
+    "sqlText": "select * from users limit 10",
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-latest"
   }
   ```
 - Expect:
   - `200`
   - response includes `explanation`, `usage`, and `logId`
 
-### 8. Usage limit exceeded
+### 8. OpenAI-compatible provider (success)
+
+- Request: `POST {{baseUrl}}/ai/generate-sql`
+- Body:
+  ```json
+  {
+    "workspaceId": "{{workspaceId}}",
+    "instruction": "show top 10 customers by spend",
+    "provider": "openai-compatible",
+    "model": "meta-llama/llama-3.1-70b-instruct",
+    "baseUrl": "https://openrouter.ai/api/v1"
+  }
+  ```
+- Expect:
+  - `200`
+  - response includes `provider = "openai-compatible"`
+
+### 9. Usage limit exceeded
 
 - Setup:
   - set `usage_counters.limit_quantity` for `ai_requests` or `ai_tokens` to current used value

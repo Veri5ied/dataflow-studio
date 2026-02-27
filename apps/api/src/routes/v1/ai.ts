@@ -1,17 +1,28 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { supportedAiProviders } from "@dataflow/ai-engine";
 import { handleRouteError } from "../../lib/handle-route-error";
 import { requireDb } from "../../lib/require-db";
 import { requireRequestUserId } from "../../lib/request-user";
 import { explainSqlForUser, generateSqlForUser } from "../../services/ai-service";
 
-const generateSqlSchema = z.object({
+const aiProviderSchema = z.enum(supportedAiProviders);
+
+const aiModelConfigSchema = z.object({
+  provider: aiProviderSchema.optional(),
+  model: z.string().min(1).optional(),
+  apiKey: z.string().min(1).optional(),
+  baseUrl: z.string().url().optional(),
+  temperature: z.number().min(0).max(2).optional(),
+});
+
+const generateSqlSchema = aiModelConfigSchema.extend({
   workspaceId: z.string().uuid(),
   instruction: z.string().min(1),
   schemaContext: z.string().optional(),
 });
 
-const explainSqlSchema = z.object({
+const explainSqlSchema = aiModelConfigSchema.extend({
   workspaceId: z.string().uuid(),
   sqlText: z.string().min(1),
 });

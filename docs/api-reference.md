@@ -39,6 +39,12 @@ All routes are grouped under `/api/v1` in the API app.
 
 - `POST /ai/generate-sql`
 - `POST /ai/explain-query`
+- AI request config supports:
+  - `provider`: `openai` | `anthropic` | `google` | `openai-compatible`
+  - `model`: provider model ID (required if no `AI_DEFAULT_MODEL`)
+  - `apiKey`: optional per-request override (otherwise server env is used)
+  - `baseUrl`: optional, required for `openai-compatible`
+  - `temperature`: optional (`0` to `2`)
 
 ## Billing
 
