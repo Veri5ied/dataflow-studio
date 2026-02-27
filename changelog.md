@@ -17,3 +17,5 @@ All notable changes to this project will be documented in this file.
 - API domain repositories/services and DB-backed workspace/billing endpoints
 - OAuth/session core with managed clients (openid-client + Octokit), callback exchange, and JWT middleware
 - Auth endpoints for `/auth/me` and development JWT issuance (`/auth/dev/session`)
+- Workspace membership invite/accept flow with role checks and seat-limit enforcement
+- Workspace invitations table + migration (`workspace_invites`)

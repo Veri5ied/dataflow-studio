@@ -34,6 +34,12 @@ export const membershipStatusEnum = pgEnum("membership_status", [
   "active",
   "disabled",
 ]);
+export const workspaceInviteStatusEnum = pgEnum("workspace_invite_status", [
+  "pending",
+  "accepted",
+  "revoked",
+  "expired",
+]);
 export const databaseEngineEnum = pgEnum("database_engine", ["postgresql"]);
 export const sslModeEnum = pgEnum("ssl_mode", [
   "disable",
@@ -165,6 +171,52 @@ export const workspaceMemberships = pgTable(
       table.workspaceId,
       table.role,
     ),
+  }),
+);
+
+export const workspaceInvites = pgTable(
+  "workspace_invites",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    invitedByUserId: uuid("invited_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    email: text("email").notNull(),
+    role: membershipRoleEnum("role").notNull(),
+    status: workspaceInviteStatusEnum("status").notNull().default("pending"),
+    inviteToken: text("invite_token").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedByUserId: uuid("accepted_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    inviteTokenUidx: uniqueIndex("workspace_invites_invite_token_uidx").on(
+      table.inviteToken,
+    ),
+    workspaceStatusIdx: index("idx_workspace_invites_workspace_status").on(
+      table.workspaceId,
+      table.status,
+    ),
+    pendingWorkspaceEmailUidx: uniqueIndex(
+      "workspace_invites_workspace_email_pending_uidx",
+    )
+      .on(table.workspaceId, table.email)
+      .where(sql`${table.status} = 'pending'`),
+    workspaceCreatedAtIdx: index("idx_workspace_invites_workspace_created_at")
+      .on(table.workspaceId, table.createdAt),
   }),
 );
 

@@ -19,6 +19,25 @@
 2. Use the returned `accessToken` in protected routes:
    - `Authorization: Bearer <accessToken>`
 
+## Membership API smoke tests
+
+1. Invite a member (owner/admin token):
+   - `POST http://localhost:3001/api/v1/workspaces/{workspaceId}/members/invite`
+   - Body:
+     ```json
+     { "email": "member@example.com", "role": "editor", "expiresInDays": 7 }
+     ```
+2. Accept invite (invitee token):
+   - `POST http://localhost:3001/api/v1/workspaces/invitations/accept`
+   - Body:
+     ```json
+     { "inviteToken": "TOKEN_FROM_INVITE_RESPONSE" }
+     ```
+3. List members:
+   - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/members`
+4. List pending invites (owner/admin):
+   - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/invites`
+
 Migration policy is documented in `docs/migration-strategy.md`.
 
 Docker scaffold files are in `tooling/docker`.
