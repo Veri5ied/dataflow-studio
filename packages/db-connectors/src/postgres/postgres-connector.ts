@@ -1,13 +1,22 @@
 import type {
+  DatabaseEngine,
   DbColumnSummary,
   DbSchemaSummary,
   DbTableMetadata,
   DbTableSummary,
   ExternalDbConnectionInput,
   ExternalDbConnectionTestResult,
-  SslMode
+  SslMode,
 } from "@dataflow/shared-types";
 import { createRequire } from "node:module";
+import type {
+  ConnectorOptions,
+  RelationalConnector,
+  RelationalQueryExecutionHandle,
+  RelationalQueryExecutionInput,
+  RelationalQueryExecutionResult,
+} from "../connector-types";
+import { assertIdentifier } from "../connector-utils";
 
 type PgSslConfig =
   | false
@@ -15,18 +24,19 @@ type PgSslConfig =
       rejectUnauthorized: boolean;
     };
 
-type ConnectorOptions = {
-  connectionTimeoutMs?: number;
-};
-
 type QueryResult<T> = {
   rows: T[];
+  rowCount: number | null;
+  command: string;
 };
 
 type PgClient = {
   connect: () => Promise<void>;
   end: () => Promise<void>;
-  query: <T>(text: string, values?: readonly unknown[]) => Promise<QueryResult<T>>;
+  query: <T>(
+    text: string,
+    values?: readonly unknown[],
+  ) => Promise<QueryResult<T>>;
 };
 
 type PgClientConstructor = new (config: {
@@ -38,6 +48,8 @@ type PgClientConstructor = new (config: {
   ssl: PgSslConfig;
   connectionTimeoutMillis: number;
   statement_timeout: number;
+  query_timeout: number;
+  application_name: string;
 }) => PgClient;
 
 const require = createRequire(import.meta.url);
@@ -52,37 +64,39 @@ function resolveSslConfig(sslMode: SslMode): PgSslConfig {
 
   if (sslMode === "verify-ca" || sslMode === "verify-full") {
     return {
-      rejectUnauthorized: true
+      rejectUnauthorized: true,
     };
   }
 
   return {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
   };
 }
 
-function isValidIdentifier(value: string) {
-  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
-}
-
-function assertIdentifier(value: string, label: string) {
-  if (!isValidIdentifier(value)) {
-    throw new Error(`Invalid ${label} identifier.`);
-  }
-
-  return value;
-}
-
-export class PostgresConnector {
+export class PostgresConnector implements RelationalConnector {
+  readonly engine: DatabaseEngine = "postgresql";
   private readonly credentials: ExternalDbConnectionInput;
   private readonly connectionTimeoutMs: number;
 
-  constructor(credentials: ExternalDbConnectionInput, options: ConnectorOptions = {}) {
+  constructor(
+    credentials: ExternalDbConnectionInput,
+    options: ConnectorOptions = {},
+  ) {
     this.credentials = credentials;
     this.connectionTimeoutMs = options.connectionTimeoutMs ?? 5_000;
   }
 
-  private createClient() {
+  private createClient(options?: {
+    connectionTimeoutMs?: number;
+    statementTimeoutMs?: number;
+    queryTimeoutMs?: number;
+  }) {
+    const connectionTimeoutMillis =
+      options?.connectionTimeoutMs ?? this.connectionTimeoutMs;
+    const statementTimeoutMs =
+      options?.statementTimeoutMs ?? connectionTimeoutMillis * 2;
+    const queryTimeoutMs = options?.queryTimeoutMs ?? statementTimeoutMs;
+
     return new Client({
       host: this.credentials.host,
       port: this.credentials.port,
@@ -90,8 +104,10 @@ export class PostgresConnector {
       user: this.credentials.username,
       password: this.credentials.password,
       ssl: resolveSslConfig(this.credentials.sslMode),
-      connectionTimeoutMillis: this.connectionTimeoutMs,
-      statement_timeout: this.connectionTimeoutMs * 2
+      connectionTimeoutMillis,
+      statement_timeout: statementTimeoutMs,
+      query_timeout: queryTimeoutMs,
+      application_name: "dataflow-studio-postgres-connector",
     });
   }
 
@@ -114,16 +130,17 @@ export class PostgresConnector {
         current_user: string;
         server_version: string;
       }>(
-        `SELECT current_database() AS current_database, current_user AS current_user, version() AS server_version`
+        `SELECT current_database() AS current_database, current_user AS current_user, version() AS server_version`,
       );
 
       const row = result.rows[0];
       return {
         ok: true,
+        databaseEngine: this.engine,
         databaseName: row.current_database,
         currentUser: row.current_user,
         serverVersion: row.server_version,
-        latencyMs: Date.now() - startedAt
+        latencyMs: Date.now() - startedAt,
       };
     });
   }
@@ -138,11 +155,11 @@ export class PostgresConnector {
             AND schema_name NOT LIKE 'pg_toast%'
             AND schema_name NOT LIKE 'pg_temp_%'
           ORDER BY schema_name
-        `
+        `,
       );
 
       return result.rows.map((row: { schema_name: string }) => ({
-        schemaName: row.schema_name
+        schemaName: row.schema_name,
       }));
     });
   }
@@ -153,7 +170,7 @@ export class PostgresConnector {
       const conditions = [
         `table_schema NOT IN ('pg_catalog', 'information_schema')`,
         `table_schema NOT LIKE 'pg_toast%'`,
-        `table_schema NOT LIKE 'pg_temp_%'`
+        `table_schema NOT LIKE 'pg_temp_%'`,
       ];
       const values: string[] = [];
 
@@ -173,22 +190,27 @@ export class PostgresConnector {
           WHERE ${conditions.join(" AND ")}
           ORDER BY table_schema, table_name
         `,
-        values
+        values,
       );
 
-      return result.rows.map((row: {
-        table_schema: string;
-        table_name: string;
-        table_type: DbTableSummary["tableType"];
-      }) => ({
-        schemaName: row.table_schema,
-        tableName: row.table_name,
-        tableType: row.table_type
-      }));
+      return result.rows.map(
+        (row: {
+          table_schema: string;
+          table_name: string;
+          table_type: DbTableSummary["tableType"];
+        }) => ({
+          schemaName: row.table_schema,
+          tableName: row.table_name,
+          tableType: row.table_type,
+        }),
+      );
     });
   }
 
-  async getTableMetadata(schemaName: string, tableName: string): Promise<DbTableMetadata | null> {
+  async getTableMetadata(
+    schemaName: string,
+    tableName: string,
+  ): Promise<DbTableMetadata | null> {
     return this.withClient(async (client) => {
       const safeSchema = assertIdentifier(schemaName.trim(), "schema");
       const safeTable = assertIdentifier(tableName.trim(), "table");
@@ -205,7 +227,7 @@ export class PostgresConnector {
             AND table_name = $2
           LIMIT 1
         `,
-        [safeSchema, safeTable]
+        [safeSchema, safeTable],
       );
 
       const table = tableResult.rows[0];
@@ -232,29 +254,97 @@ export class PostgresConnector {
             AND table_name = $2
           ORDER BY ordinal_position
         `,
-        [safeSchema, safeTable]
+        [safeSchema, safeTable],
       );
 
-      const columns: DbColumnSummary[] = columnsResult.rows.map((row: {
-        column_name: string;
-        ordinal_position: number;
-        data_type: string;
-        is_nullable: "YES" | "NO";
-        column_default: string | null;
-      }) => ({
-        columnName: row.column_name,
-        ordinalPosition: Number(row.ordinal_position),
-        dataType: row.data_type,
-        isNullable: row.is_nullable === "YES",
-        defaultValue: row.column_default
-      }));
+      const columns: DbColumnSummary[] = columnsResult.rows.map(
+        (row: {
+          column_name: string;
+          ordinal_position: number;
+          data_type: string;
+          is_nullable: "YES" | "NO";
+          column_default: string | null;
+        }) => ({
+          columnName: row.column_name,
+          ordinalPosition: Number(row.ordinal_position),
+          dataType: row.data_type,
+          isNullable: row.is_nullable === "YES",
+          defaultValue: row.column_default,
+        }),
+      );
 
       return {
         schemaName: table.table_schema,
         tableName: table.table_name,
         tableType: table.table_type,
-        columns
+        columns,
       };
     });
+  }
+
+  async startQueryExecution(
+    input: RelationalQueryExecutionInput,
+  ): Promise<RelationalQueryExecutionHandle> {
+    const client = this.createClient({
+      statementTimeoutMs: input.timeoutMs,
+      queryTimeoutMs: input.timeoutMs,
+    });
+    await client.connect();
+
+    const pidResult = await client.query<{ pid: number }>(
+      "SELECT pg_backend_pid() AS pid",
+    );
+    const backendPid = Number(pidResult.rows[0]?.pid ?? 0);
+    let closed = false;
+
+    const close = async () => {
+      if (closed) {
+        return;
+      }
+
+      closed = true;
+      await client.end();
+    };
+
+    const cancel = async () => {
+      if (!backendPid) {
+        return false;
+      }
+
+      const cancelClient = this.createClient({
+        connectionTimeoutMs: 5_000,
+        statementTimeoutMs: 5_000,
+        queryTimeoutMs: 5_000,
+      });
+
+      try {
+        await cancelClient.connect();
+        const canceledResult = await cancelClient.query<{ canceled: boolean }>(
+          "SELECT pg_cancel_backend($1) AS canceled",
+          [backendPid],
+        );
+        return Boolean(canceledResult.rows[0]?.canceled);
+      } catch {
+        return false;
+      } finally {
+        await cancelClient.end();
+      }
+    };
+
+    return {
+      run: async (): Promise<RelationalQueryExecutionResult> => {
+        const result = await client.query<Record<string, unknown>>(input.sql);
+        const rows = Array.isArray(result.rows) ? result.rows : [];
+        return {
+          rows,
+          rowCount:
+            typeof result.rowCount === "number" ? result.rowCount : rows.length,
+          command: result.command,
+          columns: rows[0] ? Object.keys(rows[0]) : [],
+        };
+      },
+      cancel,
+      close,
+    };
   }
 }

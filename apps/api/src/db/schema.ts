@@ -40,7 +40,12 @@ export const workspaceInviteStatusEnum = pgEnum("workspace_invite_status", [
   "revoked",
   "expired",
 ]);
-export const databaseEngineEnum = pgEnum("database_engine", ["postgresql"]);
+export const databaseEngineEnum = pgEnum("database_engine", [
+  "postgresql",
+  "mysql",
+  "sqlite",
+  "sqlserver",
+]);
 export const sslModeEnum = pgEnum("ssl_mode", [
   "disable",
   "allow",

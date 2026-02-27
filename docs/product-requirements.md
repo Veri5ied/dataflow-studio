@@ -12,7 +12,7 @@ It enables teams to connect, explore, query, and manage relational databases fro
 - Frontend: Next.js web GUI
 - Backend: Node.js + Hono
 - AI: LLM-powered SQL generation/explanation
-- Initial database support: PostgreSQL
+- Database support: relational engine abstraction with built-in connectors (`postgresql`, `mysql`, `sqlite`, `sqlserver`)
 - Commercial strategy: trial-first cloud, paid seats, enterprise plan
 
 The landing page lives in `apps/gui` at route `/`, isolated from workspace dashboards.
@@ -137,7 +137,7 @@ Located in `packages/ai-engine` and responsible for:
 ### 5.1 Workspaces
 
 - Create, edit, and delete workspaces
-- Connect a PostgreSQL database
+- Connect relational databases (`postgresql`, `mysql`, `sqlite`, `sqlserver`)
 - Multi-user workspace support
 - Phase 2: invitations and RBAC
 
@@ -309,7 +309,7 @@ All endpoints protected by OAuth JWT session middleware.
 
 - GitHub and Google OAuth login works
 - User can create workspace
-- User can connect PostgreSQL DB
+- User can connect relational DBs (`postgresql`, `mysql`, `sqlite`, `sqlserver`)
 - User can browse schema/tables/columns
 - User can execute SQL and view results
 - User can save queries
@@ -324,7 +324,7 @@ All endpoints protected by OAuth JWT session middleware.
 
 ## 12. Future roadmap
 
-- Multi-database support (MySQL, SQLite, SQL Server)
+- Additional relational adapters beyond the initial built-ins
 - Real-time collaboration (CRDT/WebSocket)
 - Workspace-level role permissions
 - Visual query builder

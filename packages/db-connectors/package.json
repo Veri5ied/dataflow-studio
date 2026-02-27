@@ -12,9 +12,12 @@
   },
   "dependencies": {
     "@dataflow/shared-types": "workspace:^",
+    "mssql": "^12.2.0",
+    "mysql2": "^3.18.2",
     "pg": "^8.19.0"
   },
   "devDependencies": {
+    "@types/mssql": "^9.1.9",
     "@types/pg": "^8.16.0"
   }
 }

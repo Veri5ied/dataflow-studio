@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 - External PostgreSQL connection test/save flow and live schema/table metadata endpoints
 - Upgraded at-rest credential encryption to AES-256-GCM with legacy compatibility
 - Query engine service with execution, cancellation, pagination, history logging, and saved queries persistence
+- Multi-relational DB connector runtime for `postgresql`, `mysql`, `sqlite`, and `sqlserver` with engine-aware schema/query operations
 - AI endpoints with usage quota guardrails, metering, and persistent ai_logs audit entries
 - Real multi-provider AI execution via Vercel AI SDK (`openai`, `anthropic`, `google`, and `openai-compatible`) with per-request model selection
 - Billing webhook verification/idempotency and subscription sync processing

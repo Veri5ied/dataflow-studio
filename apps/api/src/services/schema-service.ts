@@ -1,64 +1,14 @@
-import { PostgresConnector } from "@dataflow/db-connectors";
-import { decryptAtRest } from "@dataflow/utils";
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
-import { requireWorkspaceAccess } from "./memberships-service";
-import { findWorkspaceById, findDefaultWorkspaceDbConnection } from "../repositories/workspaces-repository";
-
-type WorkspaceAccessRole = "owner" | "admin" | "editor" | "viewer";
+import { requireWorkspaceConnectionForUser } from "./workspace-db-connector-service";
 
 function assertValidIdentifier(value: string, label: string) {
   const trimmed = value.trim();
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed)) {
+  if (!/^[A-Za-z0-9_$-]+$/.test(trimmed)) {
     throw new ApiError(400, `Invalid ${label} identifier.`, "invalid_identifier");
   }
 
   return trimmed;
-}
-
-async function requireWorkspaceDefaultConnector(
-  database: Database,
-  workspaceId: string,
-  userId: string,
-  roles: WorkspaceAccessRole[] = ["owner", "admin", "editor", "viewer"],
-) {
-  const workspace = await findWorkspaceById(database, workspaceId);
-  if (!workspace) {
-    throw new ApiError(404, "Workspace not found.", "workspace_not_found");
-  }
-
-  await requireWorkspaceAccess(database, workspaceId, userId, roles);
-
-  const connection = await findDefaultWorkspaceDbConnection(database, workspaceId);
-  if (!connection) {
-    throw new ApiError(
-      404,
-      "No default database connection found for workspace.",
-      "db_connection_not_found",
-    );
-  }
-
-  let password = "";
-  try {
-    password = decryptAtRest(connection.encryptedPassword);
-  } catch {
-    throw new ApiError(
-      500,
-      "Failed to decrypt workspace database credentials.",
-      "db_credentials_decrypt_failed",
-    );
-  }
-
-  const connector = new PostgresConnector({
-    host: connection.host,
-    port: connection.port,
-    databaseName: connection.databaseName,
-    username: connection.username,
-    password,
-    sslMode: connection.sslMode,
-  });
-
-  return { workspace, connection, connector };
 }
 
 export async function getWorkspaceSchemasForUser(
@@ -66,7 +16,7 @@ export async function getWorkspaceSchemasForUser(
   userId: string,
   workspaceId: string,
 ) {
-  const { connector } = await requireWorkspaceDefaultConnector(
+  const { connector } = await requireWorkspaceConnectionForUser(
     database,
     workspaceId,
     userId,
@@ -105,7 +55,7 @@ export async function getWorkspaceTablesForUser(
   workspaceId: string,
   schemaName?: string,
 ) {
-  const { connector } = await requireWorkspaceDefaultConnector(
+  const { connector } = await requireWorkspaceConnectionForUser(
     database,
     workspaceId,
     userId,
@@ -124,7 +74,30 @@ export async function getWorkspaceTablesForUser(
   }
 }
 
-function resolveTableIdentifier(table: string, schemaName?: string) {
+function defaultSchemaForEngine(
+  engine: "postgresql" | "mysql" | "sqlite" | "sqlserver",
+  databaseName: string,
+) {
+  if (engine === "mysql") {
+    return databaseName;
+  }
+
+  if (engine === "sqlite") {
+    return "main";
+  }
+
+  if (engine === "sqlserver") {
+    return "dbo";
+  }
+
+  return "public";
+}
+
+function resolveTableIdentifier(
+  table: string,
+  schemaName: string | undefined,
+  defaultSchema: string,
+) {
   const raw = table.trim();
   if (!raw) {
     throw new ApiError(400, "table name is required.", "invalid_table_name");
@@ -139,7 +112,7 @@ function resolveTableIdentifier(table: string, schemaName?: string) {
   }
 
   return {
-    schemaName: assertValidIdentifier(schemaName ?? "public", "schema"),
+    schemaName: assertValidIdentifier(schemaName ?? defaultSchema, "schema"),
     tableName: assertValidIdentifier(raw, "table"),
   };
 }
@@ -153,12 +126,16 @@ export async function getWorkspaceTableMetadataForUser(
     schemaName?: string;
   },
 ) {
-  const { connector } = await requireWorkspaceDefaultConnector(
+  const { connector, connection } = await requireWorkspaceConnectionForUser(
     database,
     workspaceId,
     userId,
   );
-  const identifier = resolveTableIdentifier(input.table, input.schemaName);
+  const identifier = resolveTableIdentifier(
+    input.table,
+    input.schemaName,
+    defaultSchemaForEngine(connection.databaseEngine, connection.databaseName),
+  );
 
   try {
     const metadata = await connector.getTableMetadata(

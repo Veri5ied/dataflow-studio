@@ -5,7 +5,7 @@
 - API is running
 - Workspace exists
 - Owner/admin JWT available
-- External PostgreSQL credentials available
+- External relational DB credentials available (`postgresql`, `mysql`, `sqlite`, or `sqlserver`)
 
 ## Environment
 
@@ -20,6 +20,7 @@
 - Body:
   ```json
   {
+    "databaseEngine": "postgresql",
     "host": "localhost",
     "port": 5432,
     "databaseName": "postgres",
@@ -41,6 +42,21 @@
   - `201`
   - response includes `connection`
   - response includes `testResult`
+
+## 2b. Save SQLite connection (success)
+
+- Request: `POST {{baseUrl}}/workspaces/{{workspaceId}}/connect-db`
+- Auth: `Bearer {{token}}`
+- Body:
+  ```json
+  {
+    "databaseEngine": "sqlite",
+    "filePath": "/absolute/path/to/app.db"
+  }
+  ```
+- Expect:
+  - `201`
+  - response includes `connection.databaseEngine = "sqlite"`
 
 ## 3. Fetch schemas (success)
 

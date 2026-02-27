@@ -1,4 +1,9 @@
-import { PostgresConnector } from "@dataflow/db-connectors";
+import { createRelationalConnector } from "@dataflow/db-connectors";
+import type {
+  DatabaseEngine,
+  ExternalDbConnectionInput,
+  SslMode,
+} from "@dataflow/shared-types";
 import { encryptAtRest } from "@dataflow/utils";
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
@@ -27,34 +32,68 @@ export type CreateWorkspaceInput = {
 };
 
 export type ConnectDbInput = {
+  databaseEngine: DatabaseEngine;
   name?: string;
-  host: string;
-  port: number;
-  databaseName: string;
-  username: string;
-  password: string;
-  sslMode?:
-    | "disable"
-    | "allow"
-    | "prefer"
-    | "require"
-    | "verify-ca"
-    | "verify-full";
+  host?: string;
+  port?: number;
+  databaseName?: string;
+  username?: string;
+  password?: string;
+  filePath?: string;
+  sslMode?: SslMode;
   isDefault?: boolean;
 };
 
 const BILLING_PROVIDER_DEFAULT = env.BILLING_PROVIDER ?? "polar";
 const TRIAL_DAYS_DEFAULT = env.TRIAL_DAYS ?? 14;
 
-function buildExternalDbConnectionInput(input: ConnectDbInput) {
+const DEFAULT_PORTS: Record<Exclude<DatabaseEngine, "sqlite">, number> = {
+  postgresql: 5432,
+  mysql: 3306,
+  sqlserver: 1433,
+};
+
+function assertNonEmpty(value: string | undefined, field: string) {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) {
+    throw new ApiError(400, `${field} is required.`, "validation_error");
+  }
+
+  return trimmed;
+}
+
+function resolveNetworkConnectionInput(
+  input: ConnectDbInput,
+): ExternalDbConnectionInput {
+  const databaseEngine = input.databaseEngine;
+
+  if (databaseEngine === "sqlite") {
+    const filePath = assertNonEmpty(input.filePath, "filePath");
+    return {
+      databaseEngine,
+      host: "localhost",
+      port: 1,
+      databaseName: filePath,
+      username: "sqlite",
+      password: "",
+      sslMode: "disable",
+      filePath,
+    };
+  }
+
   return {
-    host: input.host.trim(),
-    port: input.port,
-    databaseName: input.databaseName.trim(),
-    username: input.username.trim(),
-    password: input.password,
+    databaseEngine,
+    host: assertNonEmpty(input.host, "host"),
+    port: input.port ?? DEFAULT_PORTS[databaseEngine],
+    databaseName: assertNonEmpty(input.databaseName, "databaseName"),
+    username: assertNonEmpty(input.username, "username"),
+    password: assertNonEmpty(input.password, "password"),
     sslMode: input.sslMode ?? "require",
   };
+}
+
+function buildExternalDbConnectionInput(input: ConnectDbInput) {
+  return resolveNetworkConnectionInput(input);
 }
 
 export async function getUserWorkspaces(database: Database, userId: string) {
@@ -153,8 +192,9 @@ export async function connectWorkspaceDatabaseForUser(
     "admin",
   ]);
 
-  const connector = new PostgresConnector(buildExternalDbConnectionInput(input));
-  let testResult: Awaited<ReturnType<PostgresConnector["testConnection"]>>;
+  const connectionInput = buildExternalDbConnectionInput(input);
+  const connector = createRelationalConnector(connectionInput);
+  let testResult: Awaited<ReturnType<typeof connector.testConnection>>;
 
   try {
     testResult = await connector.testConnection();
@@ -173,13 +213,14 @@ export async function connectWorkspaceDatabaseForUser(
 
   const connection = await createDbConnection(database, {
     workspaceId,
+    databaseEngine: connectionInput.databaseEngine,
     name: input.name?.trim() || "primary",
-    host: input.host.trim(),
-    port: input.port,
-    databaseName: input.databaseName.trim(),
-    username: input.username.trim(),
-    encryptedPassword: encryptAtRest(input.password),
-    sslMode: input.sslMode ?? "require",
+    host: connectionInput.host,
+    port: connectionInput.port,
+    databaseName: connectionInput.databaseName,
+    username: connectionInput.username,
+    encryptedPassword: encryptAtRest(connectionInput.password),
+    sslMode: connectionInput.sslMode,
     isDefault,
     createdByUserId: userId,
     status: "active",
@@ -208,7 +249,7 @@ export async function testWorkspaceDatabaseConnectionForUser(
     "admin",
   ]);
 
-  const connector = new PostgresConnector(buildExternalDbConnectionInput(input));
+  const connector = createRelationalConnector(buildExternalDbConnectionInput(input));
 
   try {
     return await connector.testConnection();

@@ -40,7 +40,7 @@ Commercial model details are tracked in:
 
 - OAuth-only auth (GitHub + Google)
 - Workspace-based collaboration model
-- PostgreSQL connection management
+- Multi-relational connection management (`postgresql`, `mysql`, `sqlite`, `sqlserver`)
 - API data layer with Drizzle ORM and SQL migrations
 - Schema explorer and table metadata
 - SQL editor and query execution flow
@@ -173,6 +173,6 @@ Repository is in `api-foundation-v1` with `auth-session-core` implementation mod
 - Workspace and billing API routes are wired to repositories/services with real DB reads/writes.
 - OAuth/session core is implemented with GitHub/Google callback exchange and JWT-protected API middleware.
 - Workspace membership flow includes invite/accept endpoints with seat-limit enforcement.
-- DB connection test/save and PostgreSQL schema/table metadata endpoints are implemented.
+- DB connection test/save and schema/table metadata endpoints are implemented for multiple relational engines.
 - Query engine execution/cancel, AI usage guardrails with real provider SDK integration, billing webhook sync, and API rate limiting are implemented.
 - Remaining major milestones: GUI workspace flows and end-to-end product polish.

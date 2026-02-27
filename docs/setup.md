@@ -40,11 +40,12 @@
 
 ## DB connection + schema metadata smoke tests
 
-1. Test external DB credentials (no save):
+1. Test external DB credentials (network engine, no save):
    - `POST http://localhost:3001/api/v1/workspaces/{workspaceId}/connect-db/test`
    - Body:
      ```json
      {
+       "databaseEngine": "postgresql",
        "host": "localhost",
        "port": 5432,
        "databaseName": "postgres",
@@ -53,13 +54,22 @@
        "sslMode": "disable"
      }
      ```
-2. Save workspace DB connection:
+2. Test SQLite credentials (no save):
+   - `POST http://localhost:3001/api/v1/workspaces/{workspaceId}/connect-db/test`
+   - Body:
+     ```json
+     {
+       "databaseEngine": "sqlite",
+       "filePath": "/absolute/path/to/app.db"
+     }
+     ```
+3. Save workspace DB connection:
    - `POST http://localhost:3001/api/v1/workspaces/{workspaceId}/connect-db`
-3. Fetch schemas:
+4. Fetch schemas:
    - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/schemas`
-4. Fetch tables for schema:
+5. Fetch tables for schema:
    - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/tables?schema=public`
-5. Fetch table metadata:
+6. Fetch table metadata:
    - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/tables/users?schema=public`
 
 ## Query engine smoke tests

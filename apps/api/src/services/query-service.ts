@@ -1,5 +1,4 @@
-import { createRequire } from "node:module";
-import { decryptAtRest } from "@dataflow/utils";
+import type { DatabaseEngine } from "@dataflow/shared-types";
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
 import {
@@ -16,51 +15,8 @@ import {
   insertQueryHistory,
   saveWorkspaceQuery,
 } from "../repositories/queries-repository";
-import {
-  findDefaultWorkspaceDbConnection,
-  findWorkspaceById,
-  findWorkspaceDbConnectionByName,
-} from "../repositories/workspaces-repository";
 import { requireWorkspaceAccess } from "./memberships-service";
-
-type PgSslConfig =
-  | false
-  | {
-      rejectUnauthorized: boolean;
-    };
-
-type QueryResult<T extends Record<string, unknown> = Record<string, unknown>> = {
-  rows: T[];
-  rowCount: number | null;
-  command: string;
-};
-
-type PgClient = {
-  connect: () => Promise<void>;
-  end: () => Promise<void>;
-  query: <T extends Record<string, unknown> = Record<string, unknown>>(
-    text: string,
-    values?: readonly unknown[],
-  ) => Promise<QueryResult<T>>;
-};
-
-type PgClientConstructor = new (config: {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  ssl: PgSslConfig;
-  connectionTimeoutMillis: number;
-  statement_timeout: number;
-  query_timeout: number;
-  application_name: string;
-}) => PgClient;
-
-const require = createRequire(import.meta.url);
-const { Client } = require("pg") as {
-  Client: PgClientConstructor;
-};
+import { requireWorkspaceConnectionForUser } from "./workspace-db-connector-service";
 
 export type QueryExecutionStatus = "running" | "completed" | "failed" | "canceled";
 
@@ -96,22 +52,6 @@ const DISALLOWED_SQL_PATTERNS: RegExp[] = [
   /\bcopy\b[\s\S]*\bprogram\b/i,
 ];
 
-function resolveSslConfig(sslMode: string): PgSslConfig {
-  if (sslMode === "disable") {
-    return false;
-  }
-
-  if (sslMode === "verify-ca" || sslMode === "verify-full") {
-    return {
-      rejectUnauthorized: true,
-    };
-  }
-
-  return {
-    rejectUnauthorized: false,
-  };
-}
-
 function normalizeSql(sqlText: string) {
   const trimmed = sqlText.trim();
   if (!trimmed) {
@@ -145,11 +85,29 @@ function normalizeSql(sqlText: string) {
 }
 
 function isReadQuery(sqlText: string) {
-  return /^(select|with)\b/i.test(sqlText);
+  return /^(select|with|pragma)\b/i.test(sqlText);
+}
+
+function paginateReadSql(
+  sqlText: string,
+  engine: DatabaseEngine,
+  limit: number,
+  offset: number,
+) {
+  if (engine === "sqlserver") {
+    return [
+      `SELECT * FROM (${sqlText}) AS dataflow_query`,
+      "ORDER BY (SELECT NULL)",
+      `OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`,
+    ].join(" ");
+  }
+
+  return `SELECT * FROM (${sqlText}) AS dataflow_query LIMIT ${limit} OFFSET ${offset}`;
 }
 
 function applyPagination(
   sqlText: string,
+  engine: DatabaseEngine,
   limit: number | undefined,
   offset: number | undefined,
 ) {
@@ -160,7 +118,7 @@ function applyPagination(
     if (limit !== undefined || offset !== undefined) {
       throw new ApiError(
         400,
-        "Pagination is only supported for SELECT/CTE queries.",
+        "Pagination is only supported for SELECT/CTE/PRAGMA queries.",
         "pagination_not_supported",
       );
     }
@@ -185,7 +143,7 @@ function applyPagination(
   }
 
   return {
-    sql: `SELECT * FROM (${sqlText}) AS dataflow_query LIMIT ${normalizedLimit} OFFSET ${normalizedOffset}`,
+    sql: paginateReadSql(sqlText, engine, normalizedLimit, normalizedOffset),
     limit: normalizedLimit,
     offset: normalizedOffset,
   };
@@ -209,82 +167,13 @@ function isCancellationError(error: unknown) {
     return false;
   }
 
-  return /canceling statement due to user request/i.test(error.message);
-}
-
-async function resolveWorkspaceConnection(
-  database: Database,
-  workspaceId: string,
-  userId: string,
-  connectionName?: string,
-) {
-  const workspace = await findWorkspaceById(database, workspaceId);
-  if (!workspace) {
-    throw new ApiError(404, "Workspace not found.", "workspace_not_found");
-  }
-
-  await requireWorkspaceAccess(database, workspaceId, userId, [
-    "owner",
-    "admin",
-    "editor",
-    "viewer",
-  ]);
-
-  const connection = connectionName
-    ? await findWorkspaceDbConnectionByName(database, workspaceId, connectionName)
-    : await findDefaultWorkspaceDbConnection(database, workspaceId);
-
-  if (!connection) {
-    throw new ApiError(
-      404,
-      "Workspace database connection not found.",
-      "db_connection_not_found",
-    );
-  }
-
-  if (connection.status !== "active") {
-    throw new ApiError(
-      409,
-      "Workspace database connection is not active.",
-      "db_connection_inactive",
-    );
-  }
-
-  let password = "";
-  try {
-    password = decryptAtRest(connection.encryptedPassword);
-  } catch {
-    throw new ApiError(
-      500,
-      "Failed to decrypt workspace DB credentials.",
-      "db_credentials_decrypt_failed",
-    );
-  }
-
-  return { workspace, connection, password };
-}
-
-function createPgClient(config: {
-  host: string;
-  port: number;
-  databaseName: string;
-  username: string;
-  password: string;
-  sslMode: string;
-  timeoutMs: number;
-}) {
-  return new Client({
-    host: config.host,
-    port: config.port,
-    database: config.databaseName,
-    user: config.username,
-    password: config.password,
-    ssl: resolveSslConfig(config.sslMode),
-    connectionTimeoutMillis: 5_000,
-    statement_timeout: config.timeoutMs,
-    query_timeout: config.timeoutMs,
-    application_name: "dataflow-studio-query-engine",
-  });
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("canceling statement due to user request") ||
+    message.includes("query execution was interrupted") ||
+    message.includes("operation cancelled") ||
+    message.includes("query was cancelled")
+  );
 }
 
 export async function executeWorkspaceQueryForUser(
@@ -293,61 +182,31 @@ export async function executeWorkspaceQueryForUser(
   workspaceId: string,
   input: ExecuteWorkspaceQueryInput,
 ) {
-  const { connection, password } = await resolveWorkspaceConnection(
+  const { connection, connector } = await requireWorkspaceConnectionForUser(
     database,
     workspaceId,
     userId,
-    input.connectionName,
+    {
+      connectionName: input.connectionName,
+      roles: ["owner", "admin", "editor", "viewer"],
+    },
   );
+
   const normalizedSql = normalizeSql(input.sqlText);
-  const pagination = applyPagination(normalizedSql, input.limit, input.offset);
+  const pagination = applyPagination(
+    normalizedSql,
+    connection.databaseEngine,
+    input.limit,
+    input.offset,
+  );
   const timeoutMs = resolveTimeoutMs(input.timeoutMs);
   const executionId = allocateExecutionId(input.executionId);
   const startedAt = new Date();
 
-  const client = createPgClient({
-    host: connection.host,
-    port: connection.port,
-    databaseName: connection.databaseName,
-    username: connection.username,
-    password,
-    sslMode: connection.sslMode,
+  const executionHandle = await connector.startQueryExecution({
+    sql: pagination.sql,
     timeoutMs,
   });
-
-  await client.connect();
-
-  const pidResult = await client.query<{ pid: number }>("SELECT pg_backend_pid() AS pid");
-  const backendPid = Number(pidResult.rows[0]?.pid ?? 0);
-
-  const cancel = async () => {
-    if (!backendPid) {
-      return false;
-    }
-
-    const cancelClient = createPgClient({
-      host: connection.host,
-      port: connection.port,
-      databaseName: connection.databaseName,
-      username: connection.username,
-      password,
-      sslMode: connection.sslMode,
-      timeoutMs: 5_000,
-    });
-
-    try {
-      await cancelClient.connect();
-      const cancelResult = await cancelClient.query<{ canceled: boolean }>(
-        "SELECT pg_cancel_backend($1) AS canceled",
-        [backendPid],
-      );
-      return Boolean(cancelResult.rows[0]?.canceled);
-    } catch {
-      return false;
-    } finally {
-      await cancelClient.end();
-    }
-  };
 
   registerQueryExecution({
     executionId,
@@ -355,16 +214,13 @@ export async function executeWorkspaceQueryForUser(
     userId,
     sqlText: normalizedSql,
     startedAt,
-    cancel,
+    cancel: executionHandle.cancel,
   });
 
   try {
-    const result = await client.query(pagination.sql);
+    const result = await executionHandle.run();
     const finishedAt = new Date();
     const durationMs = finishedAt.getTime() - startedAt.getTime();
-    const rows = Array.isArray(result.rows) ? result.rows : [];
-    const rowCount = typeof result.rowCount === "number" ? result.rowCount : rows.length;
-    const columns = rows[0] ? Object.keys(rows[0]) : [];
 
     markQueryExecutionCompleted(executionId);
 
@@ -376,13 +232,14 @@ export async function executeWorkspaceQueryForUser(
       normalizedSql,
       durationMs,
       success: true,
-      rowsReturned: rowCount,
+      rowsReturned: result.rowCount,
       errorMessage: null,
       startedAt,
       finishedAt,
       metadata: {
         executionId,
         command: result.command,
+        databaseEngine: connection.databaseEngine,
         paginated: pagination.limit !== null,
         limit: pagination.limit,
         offset: pagination.offset,
@@ -393,10 +250,10 @@ export async function executeWorkspaceQueryForUser(
       executionId,
       status: "completed" as const,
       durationMs,
-      rowCount,
+      rowCount: result.rowCount,
       command: result.command,
-      columns,
-      rows,
+      columns: result.columns,
+      rows: result.rows,
       pagination: {
         limit: pagination.limit,
         offset: pagination.offset,
@@ -428,6 +285,7 @@ export async function executeWorkspaceQueryForUser(
       finishedAt,
       metadata: {
         executionId,
+        databaseEngine: connection.databaseEngine,
         canceled,
         paginated: pagination.limit !== null,
         limit: pagination.limit,
@@ -442,7 +300,7 @@ export async function executeWorkspaceQueryForUser(
     throw new ApiError(400, message, "query_execution_failed");
   } finally {
     releaseQueryExecution(executionId);
-    await client.end();
+    await executionHandle.close();
   }
 }
 

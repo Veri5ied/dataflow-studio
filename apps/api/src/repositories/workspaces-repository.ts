@@ -88,6 +88,7 @@ export async function createDbConnection(
   executor: DbExecutor,
   values: {
     workspaceId: string;
+    databaseEngine: "postgresql" | "mysql" | "sqlite" | "sqlserver";
     name: string;
     host: string;
     port: number;
@@ -111,13 +112,13 @@ export async function createDbConnection(
     .insert(dbConnections)
     .values({
       ...values,
-      databaseEngine: "postgresql",
       status: values.status ?? "active",
       lastTestedAt: values.lastTestedAt ?? null,
     })
     .returning({
       id: dbConnections.id,
       workspaceId: dbConnections.workspaceId,
+      databaseEngine: dbConnections.databaseEngine,
       name: dbConnections.name,
       host: dbConnections.host,
       port: dbConnections.port,

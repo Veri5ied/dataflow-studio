@@ -24,16 +24,29 @@ const createWorkspaceSchema = z.object({
   billingProvider: z.enum(["stripe", "polar"]).optional()
 });
 
-const connectDbSchema = z.object({
+const networkConnectDbSchema = z.object({
+  databaseEngine: z.enum(["postgresql", "mysql", "sqlserver"]),
   name: z.string().optional(),
   host: z.string().min(1),
-  port: z.number().int().positive().max(65535).default(5432),
+  port: z.number().int().positive().max(65535).optional(),
   databaseName: z.string().min(1),
   username: z.string().min(1),
   password: z.string().min(1),
   sslMode: z.enum(["disable", "allow", "prefer", "require", "verify-ca", "verify-full"]).optional(),
   isDefault: z.boolean().optional()
 });
+
+const sqliteConnectDbSchema = z.object({
+  databaseEngine: z.literal("sqlite"),
+  name: z.string().optional(),
+  filePath: z.string().min(1),
+  isDefault: z.boolean().optional(),
+});
+
+const connectDbSchema = z.union([
+  networkConnectDbSchema,
+  sqliteConnectDbSchema,
+]);
 
 const inviteWorkspaceMemberSchema = z.object({
   email: z.string().email(),

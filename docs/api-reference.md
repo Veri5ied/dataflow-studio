@@ -20,6 +20,9 @@ All routes are grouped under `/api/v1` in the API app.
 - `GET /workspaces/:id/invites`
 - `POST /workspaces/:id/members/invite`
 - `POST /workspaces/invitations/accept`
+- DB connection payloads support:
+  - Network engines: `databaseEngine = postgresql | mysql | sqlserver`, plus `host`, `port`, `databaseName`, `username`, `password`, `sslMode`
+  - File engine: `databaseEngine = sqlite`, plus `filePath`
 
 ## Schema
 
@@ -34,6 +37,7 @@ All routes are grouped under `/api/v1` in the API app.
 - `GET /workspaces/:id/query/:executionId`
 - `GET /workspaces/:id/history`
 - `POST /workspaces/:id/save-query`
+- Query pagination is engine-aware (SQL Server uses `OFFSET/FETCH`; other engines use `LIMIT/OFFSET`).
 
 ## AI
 
