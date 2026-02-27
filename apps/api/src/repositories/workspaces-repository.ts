@@ -103,6 +103,8 @@ export async function createDbConnection(
       | "verify-full";
     isDefault: boolean;
     createdByUserId: string;
+    status?: "active" | "disabled" | "error";
+    lastTestedAt?: Date | null;
   },
 ) {
   const [connection] = await executor
@@ -110,8 +112,8 @@ export async function createDbConnection(
     .values({
       ...values,
       databaseEngine: "postgresql",
-      status: "active",
-      lastTestedAt: null,
+      status: values.status ?? "active",
+      lastTestedAt: values.lastTestedAt ?? null,
     })
     .returning({
       id: dbConnections.id,
@@ -129,4 +131,42 @@ export async function createDbConnection(
     });
 
   return connection;
+}
+
+export async function findDefaultWorkspaceDbConnection(
+  executor: DbExecutor,
+  workspaceId: string,
+) {
+  const [connection] = await executor
+    .select()
+    .from(dbConnections)
+    .where(
+      and(
+        eq(dbConnections.workspaceId, workspaceId),
+        eq(dbConnections.isDefault, true),
+        eq(dbConnections.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  return connection ?? null;
+}
+
+export async function findWorkspaceDbConnectionByName(
+  executor: DbExecutor,
+  workspaceId: string,
+  connectionName: string,
+) {
+  const [connection] = await executor
+    .select()
+    .from(dbConnections)
+    .where(
+      and(
+        eq(dbConnections.workspaceId, workspaceId),
+        eq(dbConnections.name, connectionName),
+      ),
+    )
+    .limit(1);
+
+  return connection ?? null;
 }

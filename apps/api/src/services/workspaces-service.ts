@@ -1,3 +1,4 @@
+import { PostgresConnector } from "@dataflow/db-connectors";
 import { encryptAtRest } from "@dataflow/utils";
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
@@ -44,6 +45,17 @@ export type ConnectDbInput = {
 
 const BILLING_PROVIDER_DEFAULT = env.BILLING_PROVIDER ?? "polar";
 const TRIAL_DAYS_DEFAULT = env.TRIAL_DAYS ?? 14;
+
+function buildExternalDbConnectionInput(input: ConnectDbInput) {
+  return {
+    host: input.host.trim(),
+    port: input.port,
+    databaseName: input.databaseName.trim(),
+    username: input.username.trim(),
+    password: input.password,
+    sslMode: input.sslMode ?? "require",
+  };
+}
 
 export async function getUserWorkspaces(database: Database, userId: string) {
   return listWorkspacesForUser(database, userId);
@@ -141,6 +153,19 @@ export async function connectWorkspaceDatabaseForUser(
     "admin",
   ]);
 
+  const connector = new PostgresConnector(buildExternalDbConnectionInput(input));
+  let testResult: Awaited<ReturnType<PostgresConnector["testConnection"]>>;
+
+  try {
+    testResult = await connector.testConnection();
+  } catch (error) {
+    throw new ApiError(
+      400,
+      `Failed to connect to external database: ${error instanceof Error ? error.message : "unknown error"}`,
+      "db_connection_test_failed",
+    );
+  }
+
   const isDefault = input.isDefault ?? true;
   if (isDefault) {
     await unsetDefaultDbConnections(database, workspaceId);
@@ -157,7 +182,41 @@ export async function connectWorkspaceDatabaseForUser(
     sslMode: input.sslMode ?? "require",
     isDefault,
     createdByUserId: userId,
+    status: "active",
+    lastTestedAt: new Date(),
   });
 
-  return connection;
+  return {
+    connection,
+    testResult,
+  };
+}
+
+export async function testWorkspaceDatabaseConnectionForUser(
+  database: Database,
+  userId: string,
+  workspaceId: string,
+  input: ConnectDbInput,
+) {
+  const workspace = await findWorkspaceById(database, workspaceId);
+  if (!workspace) {
+    throw new ApiError(404, "Workspace not found.", "workspace_not_found");
+  }
+
+  await requireWorkspaceAccess(database, workspaceId, userId, [
+    "owner",
+    "admin",
+  ]);
+
+  const connector = new PostgresConnector(buildExternalDbConnectionInput(input));
+
+  try {
+    return await connector.testConnection();
+  } catch (error) {
+    throw new ApiError(
+      400,
+      `Failed to connect to external database: ${error instanceof Error ? error.message : "unknown error"}`,
+      "db_connection_test_failed",
+    );
+  }
 }

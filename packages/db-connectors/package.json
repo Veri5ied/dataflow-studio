@@ -9,5 +9,12 @@
     "build": "tsc -p tsconfig.json",
     "lint": "echo \"No linter configured\"",
     "test": "echo \"No tests configured\""
+  },
+  "dependencies": {
+    "@dataflow/shared-types": "workspace:^",
+    "pg": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.16.0"
   }
 }

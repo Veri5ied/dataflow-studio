@@ -15,6 +15,7 @@ All routes are grouped under `/api/v1` in the API app.
 - `GET /workspaces`
 - `POST /workspaces`
 - `POST /workspaces/:id/connect-db`
+- `POST /workspaces/:id/connect-db/test`
 - `GET /workspaces/:id/members`
 - `GET /workspaces/:id/invites`
 - `POST /workspaces/:id/members/invite`
@@ -23,6 +24,7 @@ All routes are grouped under `/api/v1` in the API app.
 ## Schema
 
 - `GET /workspaces/:id/schemas`
+- `GET /workspaces/:id/tables`
 - `GET /workspaces/:id/tables/:table`
 
 ## Queries
@@ -56,4 +58,6 @@ All routes are grouped under `/api/v1` in the API app.
 - Membership management routes require workspace role checks:
   - `invite/list invites`: `owner` or `admin`
   - `list members`: any active workspace member
+- DB connection testing and creation routes require `owner` or `admin`.
+- Schema metadata routes require any active workspace membership.
 - Seat enforcement is applied on invite acceptance (`workspace_seat_limit_reached`).

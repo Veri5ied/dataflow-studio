@@ -19,3 +19,5 @@ All notable changes to this project will be documented in this file.
 - Auth endpoints for `/auth/me` and development JWT issuance (`/auth/dev/session`)
 - Workspace membership invite/accept flow with role checks and seat-limit enforcement
 - Workspace invitations table + migration (`workspace_invites`)
+- External PostgreSQL connection test/save flow and live schema/table metadata endpoints
+- Upgraded at-rest credential encryption to AES-256-GCM with legacy compatibility

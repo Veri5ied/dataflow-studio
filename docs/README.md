@@ -7,4 +7,5 @@
 - `architecture.md`: high-level architecture and module boundaries
 - `api-reference.md`: API endpoints and contract notes
 - `api-test-cases-memberships.md`: workspace membership invite/accept test scenarios
+- `api-test-cases-schema.md`: DB connection and schema metadata test scenarios
 - `setup.md`: local development and deployment instructions

@@ -77,8 +77,8 @@ dataflow-studio/
 All backend routes are under `/api/v1`.
 
 - Auth: `/auth/oauth/github`, `/auth/oauth/google`, `/auth/oauth/callback`, `/auth/me`
-- Workspaces: `/workspaces`, `/workspaces/:id/connect-db`, `/workspaces/:id/members`, `/workspaces/:id/members/invite`, `/workspaces/invitations/accept`
-- Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables/:table`
+- Workspaces: `/workspaces`, `/workspaces/:id/connect-db`, `/workspaces/:id/connect-db/test`, `/workspaces/:id/members`, `/workspaces/:id/members/invite`, `/workspaces/invitations/accept`
+- Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables`, `/workspaces/:id/tables/:table`
 - Queries: `/workspaces/:id/query`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
 - AI: `/ai/generate-sql`, `/ai/explain-query`
 - Billing: `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`, `/billing/webhook/stripe`, `/billing/webhook/polar`
@@ -164,4 +164,5 @@ Repository is in `api-foundation-v1` with `auth-session-core` implementation mod
 - Workspace and billing API routes are wired to repositories/services with real DB reads/writes.
 - OAuth/session core is implemented with GitHub/Google callback exchange and JWT-protected API middleware.
 - Workspace membership flow includes invite/accept endpoints with seat-limit enforcement.
+- DB connection test/save and PostgreSQL schema/table metadata endpoints are implemented.
 - Remaining major milestones: query engine execution/cancel flow, AI guardrails, and hardening.

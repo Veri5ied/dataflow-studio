@@ -12,7 +12,8 @@ import {
 import {
   connectWorkspaceDatabaseForUser,
   createWorkspaceForUser,
-  getUserWorkspaces
+  getUserWorkspaces,
+  testWorkspaceDatabaseConnectionForUser
 } from "../../services/workspaces-service";
 
 const createWorkspaceSchema = z.object({
@@ -113,8 +114,29 @@ export const workspaceRoutes = new Hono()
       const database = requireDb();
       const userId = requireRequestUserId(c);
       const payload = connectDbSchema.parse(await c.req.json());
-      const connection = await connectWorkspaceDatabaseForUser(database, userId, c.req.param("id"), payload);
-      return c.json({ connection }, 201);
+      const result = await connectWorkspaceDatabaseForUser(
+        database,
+        userId,
+        c.req.param("id"),
+        payload,
+      );
+      return c.json(result, 201);
+    } catch (error) {
+      return handleRouteError(c, error);
+    }
+  })
+  .post("/:id/connect-db/test", async (c) => {
+    try {
+      const database = requireDb();
+      const userId = requireRequestUserId(c);
+      const payload = connectDbSchema.parse(await c.req.json());
+      const testResult = await testWorkspaceDatabaseConnectionForUser(
+        database,
+        userId,
+        c.req.param("id"),
+        payload,
+      );
+      return c.json({ testResult });
     } catch (error) {
       return handleRouteError(c, error);
     }

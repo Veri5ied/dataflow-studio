@@ -38,6 +38,30 @@
 4. List pending invites (owner/admin):
    - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/invites`
 
+## DB connection + schema metadata smoke tests
+
+1. Test external DB credentials (no save):
+   - `POST http://localhost:3001/api/v1/workspaces/{workspaceId}/connect-db/test`
+   - Body:
+     ```json
+     {
+       "host": "localhost",
+       "port": 5432,
+       "databaseName": "postgres",
+       "username": "postgres",
+       "password": "admin",
+       "sslMode": "disable"
+     }
+     ```
+2. Save workspace DB connection:
+   - `POST http://localhost:3001/api/v1/workspaces/{workspaceId}/connect-db`
+3. Fetch schemas:
+   - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/schemas`
+4. Fetch tables for schema:
+   - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/tables?schema=public`
+5. Fetch table metadata:
+   - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/tables/users?schema=public`
+
 Migration policy is documented in `docs/migration-strategy.md`.
 
 Docker scaffold files are in `tooling/docker`.
