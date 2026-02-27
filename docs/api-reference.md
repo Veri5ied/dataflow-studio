@@ -30,6 +30,8 @@ All routes are grouped under `/api/v1` in the API app.
 ## Queries
 
 - `POST /workspaces/:id/query`
+- `POST /workspaces/:id/query/cancel`
+- `GET /workspaces/:id/query/:executionId`
 - `GET /workspaces/:id/history`
 - `POST /workspaces/:id/save-query`
 
@@ -61,3 +63,9 @@ All routes are grouped under `/api/v1` in the API app.
 - DB connection testing and creation routes require `owner` or `admin`.
 - Schema metadata routes require any active workspace membership.
 - Seat enforcement is applied on invite acceptance (`workspace_seat_limit_reached`).
+- AI endpoints enforce workspace usage limits (`ai_requests`, `ai_tokens`) and return `usage_limit_exceeded` when quota is exceeded.
+- Responses include `x-request-id` for tracing.
+- Rate limits:
+  - General `/api/v1/*` limit
+  - Stricter `/api/v1/ai/*` limit
+  - Dedicated `/api/v1/billing/webhook/*` limit

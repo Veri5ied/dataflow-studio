@@ -79,7 +79,7 @@ All backend routes are under `/api/v1`.
 - Auth: `/auth/oauth/github`, `/auth/oauth/google`, `/auth/oauth/callback`, `/auth/me`
 - Workspaces: `/workspaces`, `/workspaces/:id/connect-db`, `/workspaces/:id/connect-db/test`, `/workspaces/:id/members`, `/workspaces/:id/members/invite`, `/workspaces/invitations/accept`
 - Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables`, `/workspaces/:id/tables/:table`
-- Queries: `/workspaces/:id/query`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
+- Queries: `/workspaces/:id/query`, `/workspaces/:id/query/cancel`, `/workspaces/:id/query/:executionId`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
 - AI: `/ai/generate-sql`, `/ai/explain-query`
 - Billing: `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`, `/billing/webhook/stripe`, `/billing/webhook/polar`
 
@@ -165,4 +165,5 @@ Repository is in `api-foundation-v1` with `auth-session-core` implementation mod
 - OAuth/session core is implemented with GitHub/Google callback exchange and JWT-protected API middleware.
 - Workspace membership flow includes invite/accept endpoints with seat-limit enforcement.
 - DB connection test/save and PostgreSQL schema/table metadata endpoints are implemented.
-- Remaining major milestones: query engine execution/cancel flow, AI guardrails, and hardening.
+- Query engine execution/cancel, AI usage guardrails, billing webhook sync, and API rate limiting are implemented.
+- Remaining major milestones: GUI workspace flows and end-to-end product polish.

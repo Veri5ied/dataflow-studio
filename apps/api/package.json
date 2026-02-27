@@ -12,7 +12,7 @@
     "db:migrate": "../../tooling/scripts/migrate.sh",
     "db:seed": "../../tooling/scripts/seed.sh",
     "lint": "echo \"No linter configured\"",
-    "test": "echo \"No tests configured\""
+    "test": "node --import tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@dataflow/ai-engine": "workspace:*",

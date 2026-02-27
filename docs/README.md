@@ -8,4 +8,5 @@
 - `api-reference.md`: API endpoints and contract notes
 - `api-test-cases-memberships.md`: workspace membership invite/accept test scenarios
 - `api-test-cases-schema.md`: DB connection and schema metadata test scenarios
+- `api-test-cases-query-ai.md`: query engine and AI guardrail test scenarios
 - `setup.md`: local development and deployment instructions

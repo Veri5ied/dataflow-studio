@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { billingAccounts, subscriptions, webhookEvents } from "../db/schema";
 import type { DbExecutor } from "./db-executor";
 
@@ -159,4 +159,50 @@ export async function recordWebhookEvent(
     .returning();
 
   return event;
+}
+
+export async function findWebhookEventByProviderAndEventId(
+  executor: DbExecutor,
+  provider: BillingProvider,
+  providerEventId: string,
+) {
+  const [event] = await executor
+    .select()
+    .from(webhookEvents)
+    .where(
+      and(
+        eq(webhookEvents.provider, provider),
+        eq(webhookEvents.providerEventId, providerEventId),
+      ),
+    )
+    .limit(1);
+
+  return event ?? null;
+}
+
+export async function updateWebhookEventStatus(
+  executor: DbExecutor,
+  eventId: string,
+  values: {
+    status: "pending" | "processed" | "failed" | "ignored";
+    processedAt?: Date | null;
+    errorMessage?: string | null;
+    attemptsIncrement?: boolean;
+  },
+) {
+  const [event] = await executor
+    .update(webhookEvents)
+    .set({
+      status: values.status,
+      processedAt: values.processedAt ?? null,
+      errorMessage: values.errorMessage ?? null,
+      attempts: values.attemptsIncrement
+        ? sql`${webhookEvents.attempts} + 1`
+        : webhookEvents.attempts,
+      updatedAt: new Date(),
+    })
+    .where(eq(webhookEvents.id, eventId))
+    .returning();
+
+  return event ?? null;
 }

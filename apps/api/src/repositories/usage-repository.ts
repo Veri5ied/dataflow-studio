@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { usageCounters } from "../db/schema";
 import type { DbExecutor } from "./db-executor";
 
@@ -49,4 +49,31 @@ export async function findUsageCountersForPeriod(
         eq(usageCounters.periodStart, periodStart),
       ),
     );
+}
+
+export async function incrementUsageCounter(
+  executor: DbExecutor,
+  values: {
+    workspaceId: string;
+    metricCode: UsageMetricCode;
+    periodStart: Date;
+    amount: number;
+  },
+) {
+  const [counter] = await executor
+    .update(usageCounters)
+    .set({
+      quantity: sql`${usageCounters.quantity} + ${values.amount}`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(usageCounters.workspaceId, values.workspaceId),
+        eq(usageCounters.metricCode, values.metricCode),
+        eq(usageCounters.periodStart, values.periodStart),
+      ),
+    )
+    .returning();
+
+  return counter ?? null;
 }

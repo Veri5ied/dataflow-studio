@@ -73,6 +73,10 @@ export const usageMetricCodeEnum = pgEnum("usage_metric_code", [
   "ai_requests",
   "ai_tokens",
 ]);
+export const aiActionEnum = pgEnum("ai_action", [
+  "generate_sql",
+  "explain_query",
+]);
 export const webhookStatusEnum = pgEnum("webhook_status", [
   "pending",
   "processed",
@@ -440,6 +444,43 @@ export const usageCounters = pgTable(
     workspaceMetricIdx: index("idx_usage_counters_workspace_metric").on(
       table.workspaceId,
       table.metricCode,
+    ),
+  }),
+);
+
+export const aiLogs = pgTable(
+  "ai_logs",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    action: aiActionEnum("action").notNull(),
+    instruction: text("instruction"),
+    sqlText: text("sql_text"),
+    responseText: text("response_text"),
+    provider: text("provider"),
+    model: text("model"),
+    tokensUsed: integer("tokens_used").notNull().default(0),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    workspaceCreatedAtIdx: index("idx_ai_logs_workspace_created_at").on(
+      table.workspaceId,
+      table.createdAt,
+    ),
+    workspaceActionIdx: index("idx_ai_logs_workspace_action").on(
+      table.workspaceId,
+      table.action,
     ),
   }),
 );

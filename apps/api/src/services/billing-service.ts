@@ -4,8 +4,11 @@ import { env } from "../lib/env";
 import {
   createOrUpdateSubscription,
   findBillingAccountByWorkspaceId,
+  findLatestSubscriptionByBillingAccountId,
+  findWebhookEventByProviderAndEventId,
   findWorkspaceSubscription,
   recordWebhookEvent,
+  updateWebhookEventStatus,
   upsertBillingAccountForWorkspace,
   type BillingProvider,
 } from "../repositories/billing-repository";
@@ -18,6 +21,7 @@ import {
   getCurrentMonthlyPeriod,
   getWorkspaceCurrentUsage,
 } from "./usage-service";
+import { getBillingProviderAdapter } from "./billing-provider-adapter";
 
 type PlanCode = "cloud-pro-monthly" | "enterprise-yearly";
 
@@ -71,19 +75,11 @@ function getProviderCheckoutUrl(
   provider: BillingProvider,
   workspaceId: string,
 ) {
-  if (provider === "polar") {
-    return `https://polar.sh/checkout/mock/${workspaceId}`;
-  }
-
-  return `https://dashboard.stripe.com/payments/mock/${workspaceId}`;
+  return getBillingProviderAdapter(provider).getCheckoutUrl(workspaceId);
 }
 
 function getProviderPortalUrl(provider: BillingProvider, workspaceId: string) {
-  if (provider === "polar") {
-    return `https://polar.sh/portal/mock/${workspaceId}`;
-  }
-
-  return `https://dashboard.stripe.com/customers/mock/${workspaceId}`;
+  return getBillingProviderAdapter(provider).getPortalUrl(workspaceId);
 }
 
 function getPeriodRange(interval: "monthly" | "yearly") {
@@ -298,21 +294,264 @@ function getWebhookEventMetadata(payload: Record<string, unknown>) {
   return { providerEventId, eventType };
 }
 
-export async function recordBillingWebhook(
+function getWebhookSecret(provider: BillingProvider) {
+  if (provider === "stripe") {
+    return env.STRIPE_WEBHOOK_SECRET ?? null;
+  }
+
+  return env.POLAR_WEBHOOK_SECRET ?? null;
+}
+
+export function verifyWebhookSignature(
+  provider: BillingProvider,
+  rawBody: string,
+  signatureHeader: string | null,
+) {
+  return getBillingProviderAdapter(provider).verifySignature(
+    rawBody,
+    signatureHeader,
+    getWebhookSecret(provider),
+  );
+}
+
+function parseDate(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function parseBillingStatus(status: unknown): "trialing" | "active" | "past_due" | "canceled" {
+  if (typeof status !== "string") {
+    return "active";
+  }
+
+  const normalized = status.toLowerCase();
+  if (normalized === "trialing" || normalized === "active" || normalized === "past_due" || normalized === "canceled") {
+    return normalized;
+  }
+
+  if (normalized === "past-due") {
+    return "past_due";
+  }
+
+  if (normalized === "cancelled") {
+    return "canceled";
+  }
+
+  return "active";
+}
+
+function parseBillingInterval(value: unknown): "monthly" | "yearly" {
+  if (typeof value !== "string") {
+    return "monthly";
+  }
+
+  return value.toLowerCase().startsWith("year") ? "yearly" : "monthly";
+}
+
+function extractSubscriptionSnapshot(payload: Record<string, unknown>) {
+  const root = payload;
+  const data = (root.data ?? {}) as Record<string, unknown>;
+  const object = (data.object ?? data) as Record<string, unknown>;
+  const metadata = (object.metadata ?? {}) as Record<string, unknown>;
+
+  const workspaceIdCandidates = [
+    root.workspaceId,
+    data.workspaceId,
+    object.workspaceId,
+    metadata.workspaceId,
+    metadata.workspace_id,
+  ];
+
+  const workspaceId =
+    workspaceIdCandidates.find((item): item is string => typeof item === "string" && item.length > 0) ??
+    null;
+
+  const providerSubscriptionId =
+    (typeof root.subscriptionId === "string" && root.subscriptionId) ||
+    (typeof object.id === "string" && object.id) ||
+    (typeof data.subscriptionId === "string" && data.subscriptionId) ||
+    null;
+
+  const planCode =
+    (typeof root.planCode === "string" && root.planCode) ||
+    (typeof object.planCode === "string" && object.planCode) ||
+    (typeof metadata.planCode === "string" && metadata.planCode) ||
+    null;
+
+  const seatsRaw =
+    root.seatsPurchased ??
+    object.seatsPurchased ??
+    object.quantity ??
+    metadata.seatsPurchased ??
+    metadata.seats;
+  const seatsPurchased =
+    typeof seatsRaw === "number"
+      ? Math.max(1, Math.floor(seatsRaw))
+      : typeof seatsRaw === "string" && seatsRaw
+        ? Math.max(1, Number.parseInt(seatsRaw, 10) || 1)
+        : null;
+
+  return {
+    workspaceId,
+    providerCustomerId:
+      (typeof object.customerId === "string" && object.customerId) ||
+      (typeof object.customer === "string" && object.customer) ||
+      (typeof root.customerId === "string" && root.customerId) ||
+      null,
+    providerSubscriptionId,
+    status: parseBillingStatus(root.status ?? object.status ?? data.status),
+    interval: parseBillingInterval(root.interval ?? object.interval ?? data.interval),
+    planCode,
+    seatsPurchased,
+    periodStart:
+      parseDate(root.currentPeriodStart ?? object.currentPeriodStart ?? data.currentPeriodStart) ??
+      null,
+    periodEnd:
+      parseDate(root.currentPeriodEnd ?? object.currentPeriodEnd ?? data.currentPeriodEnd) ??
+      null,
+  };
+}
+
+function isPlanCode(value: string | null): value is PlanCode {
+  if (!value) {
+    return false;
+  }
+
+  return PLAN_CATALOG.some((plan) => plan.code === value);
+}
+
+export async function processBillingWebhook(
   database: Database,
   provider: BillingProvider,
   payload: Record<string, unknown>,
   signature: string | null,
+  rawBody: string,
 ) {
+  if (!verifyWebhookSignature(provider, rawBody, signature)) {
+    throw new ApiError(401, "Invalid webhook signature.", "invalid_webhook_signature");
+  }
+
   const { providerEventId, eventType } = getWebhookEventMetadata(payload);
+  const resolvedEventId = providerEventId ?? `${provider}-event-${Date.now()}`;
+
+  const existing = await findWebhookEventByProviderAndEventId(
+    database,
+    provider,
+    resolvedEventId,
+  );
+
+  if (existing?.status === "processed") {
+    return {
+      received: true,
+      duplicate: true,
+      processed: true,
+      eventId: existing.id,
+    };
+  }
 
   const event = await recordWebhookEvent(database, {
     provider,
-    providerEventId: providerEventId ?? `${provider}-event-${Date.now()}`,
+    providerEventId: resolvedEventId,
     eventType,
     payload,
     signature,
   });
+  const snapshot = extractSubscriptionSnapshot(payload);
 
-  return event;
+  if (!snapshot.workspaceId) {
+    await updateWebhookEventStatus(database, event.id, {
+      status: "ignored",
+      processedAt: new Date(),
+      errorMessage: "workspaceId missing from webhook payload",
+      attemptsIncrement: true,
+    });
+
+    return {
+      received: true,
+      duplicate: false,
+      processed: false,
+      eventId: event.id,
+      reason: "missing_workspace_id",
+    };
+  }
+
+  try {
+    const account = await upsertBillingAccountForWorkspace(database, {
+      workspaceId: snapshot.workspaceId,
+      provider,
+      status: snapshot.status,
+      trialEndsAt: snapshot.status === "trialing" ? getTrialEndDate() : null,
+    });
+
+    const latestSubscription = await findLatestSubscriptionByBillingAccountId(
+      database,
+      account.id,
+    );
+
+    const planCode = isPlanCode(snapshot.planCode)
+      ? snapshot.planCode
+      : latestSubscription && isPlanCode(latestSubscription.planCode)
+        ? latestSubscription.planCode
+        : "cloud-pro-monthly";
+    const plan = getPlanByCode(planCode) ?? PLAN_CATALOG[0];
+    const interval = snapshot.interval ?? plan.interval;
+    const period = getPeriodRange(interval);
+
+    const subscription = await createOrUpdateSubscription(database, {
+      billingAccountId: account.id,
+      provider,
+      planCode,
+      billingInterval: interval,
+      seatPriceCents: plan.seatPriceCents,
+      seatsPurchased:
+        snapshot.seatsPurchased ??
+        latestSubscription?.seatsPurchased ??
+        1,
+      status: snapshot.status,
+      currentPeriodStart: snapshot.periodStart ?? period.periodStart,
+      currentPeriodEnd: snapshot.periodEnd ?? period.periodEnd,
+    });
+
+    await upsertUsageCounter(database, {
+      workspaceId: snapshot.workspaceId,
+      metricCode: "seats",
+      periodStart: snapshot.periodStart ?? period.periodStart,
+      periodEnd: snapshot.periodEnd ?? period.periodEnd,
+      quantity: 0,
+      limitQuantity: subscription.seatsPurchased,
+    });
+
+    await updateWebhookEventStatus(database, event.id, {
+      status: "processed",
+      processedAt: new Date(),
+      errorMessage: null,
+      attemptsIncrement: true,
+    });
+
+    return {
+      received: true,
+      duplicate: false,
+      processed: true,
+      eventId: event.id,
+      workspaceId: snapshot.workspaceId,
+      subscriptionId: subscription.id,
+    };
+  } catch (error) {
+    await updateWebhookEventStatus(database, event.id, {
+      status: "failed",
+      processedAt: null,
+      errorMessage: error instanceof Error ? error.message : "unknown webhook processing error",
+      attemptsIncrement: true,
+    });
+
+    throw error;
+  }
 }
