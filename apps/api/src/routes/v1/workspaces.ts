@@ -4,6 +4,12 @@ import { handleRouteError } from "../../lib/handle-route-error";
 import { requireDb } from "../../lib/require-db";
 import { requireRequestUserId } from "../../lib/request-user";
 import {
+  acceptWorkspaceInviteForUser,
+  inviteWorkspaceMemberForUser,
+  listWorkspaceMembersForUser,
+  listWorkspacePendingInvitesForUser
+} from "../../services/memberships-service";
+import {
   connectWorkspaceDatabaseForUser,
   createWorkspaceForUser,
   getUserWorkspaces
@@ -28,6 +34,16 @@ const connectDbSchema = z.object({
   isDefault: z.boolean().optional()
 });
 
+const inviteWorkspaceMemberSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(["admin", "editor", "viewer"]).default("viewer"),
+  expiresInDays: z.number().int().positive().max(30).optional()
+});
+
+const acceptWorkspaceInviteSchema = z.object({
+  inviteToken: z.string().min(16)
+});
+
 export const workspaceRoutes = new Hono()
   .get("/", async (c) => {
     try {
@@ -45,6 +61,48 @@ export const workspaceRoutes = new Hono()
       const userId = requireRequestUserId(c);
       const payload = createWorkspaceSchema.parse(await c.req.json());
       const result = await createWorkspaceForUser(database, userId, payload);
+      return c.json(result, 201);
+    } catch (error) {
+      return handleRouteError(c, error);
+    }
+  })
+  .post("/invitations/accept", async (c) => {
+    try {
+      const database = requireDb();
+      const userId = requireRequestUserId(c);
+      const payload = acceptWorkspaceInviteSchema.parse(await c.req.json());
+      const result = await acceptWorkspaceInviteForUser(database, userId, payload);
+      return c.json(result, 201);
+    } catch (error) {
+      return handleRouteError(c, error);
+    }
+  })
+  .get("/:id/members", async (c) => {
+    try {
+      const database = requireDb();
+      const userId = requireRequestUserId(c);
+      const items = await listWorkspaceMembersForUser(database, c.req.param("id"), userId);
+      return c.json({ items });
+    } catch (error) {
+      return handleRouteError(c, error);
+    }
+  })
+  .get("/:id/invites", async (c) => {
+    try {
+      const database = requireDb();
+      const userId = requireRequestUserId(c);
+      const items = await listWorkspacePendingInvitesForUser(database, c.req.param("id"), userId);
+      return c.json({ items });
+    } catch (error) {
+      return handleRouteError(c, error);
+    }
+  })
+  .post("/:id/members/invite", async (c) => {
+    try {
+      const database = requireDb();
+      const userId = requireRequestUserId(c);
+      const payload = inviteWorkspaceMemberSchema.parse(await c.req.json());
+      const result = await inviteWorkspaceMemberForUser(database, c.req.param("id"), userId, payload);
       return c.json(result, 201);
     } catch (error) {
       return handleRouteError(c, error);

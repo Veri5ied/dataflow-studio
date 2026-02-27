@@ -15,6 +15,10 @@ All routes are grouped under `/api/v1` in the API app.
 - `GET /workspaces`
 - `POST /workspaces`
 - `POST /workspaces/:id/connect-db`
+- `GET /workspaces/:id/members`
+- `GET /workspaces/:id/invites`
+- `POST /workspaces/:id/members/invite`
+- `POST /workspaces/invitations/accept`
 
 ## Schema
 
@@ -49,3 +53,7 @@ All routes are grouped under `/api/v1` in the API app.
 - Workspace, schema, query, AI, and non-webhook billing routes require authenticated session middleware.
 - Protected routes require `Authorization: Bearer <jwt>`.
 - `POST /auth/dev/session` returns a JWT for local testing using an existing `users.id`.
+- Membership management routes require workspace role checks:
+  - `invite/list invites`: `owner` or `admin`
+  - `list members`: any active workspace member
+- Seat enforcement is applied on invite acceptance (`workspace_seat_limit_reached`).

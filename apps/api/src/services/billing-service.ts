@@ -130,6 +130,15 @@ export async function createCheckoutSessionForUser(
     "admin",
   ]);
 
+  const seatsUsed = await getWorkspaceSeatCount(database, input.workspaceId);
+  if (input.seats < seatsUsed) {
+    throw new ApiError(
+      400,
+      `seats must be at least current active members (${seatsUsed}).`,
+      "seats_below_active_members",
+    );
+  }
+
   const provider = input.provider ?? DEFAULT_PROVIDER;
   const account = await upsertBillingAccountForWorkspace(database, {
     workspaceId: input.workspaceId,
