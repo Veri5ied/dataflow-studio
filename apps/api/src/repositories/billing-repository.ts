@@ -11,7 +11,7 @@ export async function upsertBillingAccountForWorkspace(
     provider: BillingProvider;
     status: "trialing" | "active" | "past_due" | "canceled";
     trialEndsAt: Date | null;
-  }
+  },
 ) {
   const [account] = await executor
     .insert(billingAccounts)
@@ -22,15 +22,18 @@ export async function upsertBillingAccountForWorkspace(
         provider: values.provider,
         status: values.status,
         trialEndsAt: values.trialEndsAt,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     })
     .returning();
 
   return account;
 }
 
-export async function findBillingAccountByWorkspaceId(executor: DbExecutor, workspaceId: string) {
+export async function findBillingAccountByWorkspaceId(
+  executor: DbExecutor,
+  workspaceId: string,
+) {
   const [account] = await executor
     .select()
     .from(billingAccounts)
@@ -52,9 +55,12 @@ export async function createOrUpdateSubscription(
     status: "trialing" | "active" | "past_due" | "canceled";
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
-  }
+  },
 ) {
-  const existing = await findLatestSubscriptionByBillingAccountId(executor, values.billingAccountId);
+  const existing = await findLatestSubscriptionByBillingAccountId(
+    executor,
+    values.billingAccountId,
+  );
 
   if (existing) {
     const [updated] = await executor
@@ -68,7 +74,7 @@ export async function createOrUpdateSubscription(
         status: values.status,
         currentPeriodStart: values.currentPeriodStart,
         currentPeriodEnd: values.currentPeriodEnd,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(subscriptions.id, existing.id))
       .returning();
@@ -82,7 +88,7 @@ export async function createOrUpdateSubscription(
       ...values,
       providerSubscriptionId: null,
       currency: "usd",
-      cancelAtPeriodEnd: false
+      cancelAtPeriodEnd: false,
     })
     .returning();
 
@@ -91,7 +97,7 @@ export async function createOrUpdateSubscription(
 
 export async function findLatestSubscriptionByBillingAccountId(
   executor: DbExecutor,
-  billingAccountId: string
+  billingAccountId: string,
 ) {
   const [subscription] = await executor
     .select()
@@ -103,11 +109,17 @@ export async function findLatestSubscriptionByBillingAccountId(
   return subscription ?? null;
 }
 
-export async function findWorkspaceSubscription(executor: DbExecutor, workspaceId: string) {
+export async function findWorkspaceSubscription(
+  executor: DbExecutor,
+  workspaceId: string,
+) {
   const [result] = await executor
     .select({ account: billingAccounts, subscription: subscriptions })
     .from(billingAccounts)
-    .leftJoin(subscriptions, eq(subscriptions.billingAccountId, billingAccounts.id))
+    .leftJoin(
+      subscriptions,
+      eq(subscriptions.billingAccountId, billingAccounts.id),
+    )
     .where(eq(billingAccounts.workspaceId, workspaceId))
     .orderBy(desc(subscriptions.createdAt))
     .limit(1);
@@ -123,7 +135,7 @@ export async function recordWebhookEvent(
     eventType: string;
     payload: Record<string, unknown>;
     signature: string | null;
-  }
+  },
 ) {
   const [event] = await executor
     .insert(webhookEvents)
@@ -134,15 +146,15 @@ export async function recordWebhookEvent(
       payload: values.payload,
       signature: values.signature,
       status: "pending",
-      attempts: 0
+      attempts: 0,
     })
     .onConflictDoUpdate({
       target: [webhookEvents.provider, webhookEvents.providerEventId],
       set: {
         payload: values.payload,
         signature: values.signature,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     })
     .returning();
 

@@ -2,7 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { dbConnections, workspaceMemberships, workspaces } from "../db/schema";
 import type { DbExecutor } from "./db-executor";
 
-export async function listWorkspacesForUser(executor: DbExecutor, userId: string) {
+export async function listWorkspacesForUser(
+  executor: DbExecutor,
+  userId: string,
+) {
   return executor
     .select({
       id: workspaces.id,
@@ -14,14 +17,22 @@ export async function listWorkspacesForUser(executor: DbExecutor, userId: string
       role: workspaceMemberships.role,
       joinedAt: workspaceMemberships.joinedAt,
       createdAt: workspaces.createdAt,
-      updatedAt: workspaces.updatedAt
+      updatedAt: workspaces.updatedAt,
     })
     .from(workspaceMemberships)
     .innerJoin(workspaces, eq(workspaces.id, workspaceMemberships.workspaceId))
-    .where(and(eq(workspaceMemberships.userId, userId), eq(workspaceMemberships.status, "active")));
+    .where(
+      and(
+        eq(workspaceMemberships.userId, userId),
+        eq(workspaceMemberships.status, "active"),
+      ),
+    );
 }
 
-export async function findWorkspaceById(executor: DbExecutor, workspaceId: string) {
+export async function findWorkspaceById(
+  executor: DbExecutor,
+  workspaceId: string,
+) {
   const [workspace] = await executor
     .select()
     .from(workspaces)
@@ -49,17 +60,28 @@ export async function createWorkspace(
     description: string | null;
     visibility: "private" | "public";
     createdByUserId: string;
-  }
+  },
 ) {
-  const [workspace] = await executor.insert(workspaces).values(values).returning();
+  const [workspace] = await executor
+    .insert(workspaces)
+    .values(values)
+    .returning();
   return workspace;
 }
 
-export async function unsetDefaultDbConnections(executor: DbExecutor, workspaceId: string) {
+export async function unsetDefaultDbConnections(
+  executor: DbExecutor,
+  workspaceId: string,
+) {
   await executor
     .update(dbConnections)
     .set({ isDefault: false, updatedAt: new Date() })
-    .where(and(eq(dbConnections.workspaceId, workspaceId), eq(dbConnections.isDefault, true)));
+    .where(
+      and(
+        eq(dbConnections.workspaceId, workspaceId),
+        eq(dbConnections.isDefault, true),
+      ),
+    );
 }
 
 export async function createDbConnection(
@@ -72,10 +94,16 @@ export async function createDbConnection(
     databaseName: string;
     username: string;
     encryptedPassword: string;
-    sslMode: "disable" | "allow" | "prefer" | "require" | "verify-ca" | "verify-full";
+    sslMode:
+      | "disable"
+      | "allow"
+      | "prefer"
+      | "require"
+      | "verify-ca"
+      | "verify-full";
     isDefault: boolean;
     createdByUserId: string;
-  }
+  },
 ) {
   const [connection] = await executor
     .insert(dbConnections)
@@ -83,7 +111,7 @@ export async function createDbConnection(
       ...values,
       databaseEngine: "postgresql",
       status: "active",
-      lastTestedAt: null
+      lastTestedAt: null,
     })
     .returning({
       id: dbConnections.id,
@@ -97,7 +125,7 @@ export async function createDbConnection(
       isDefault: dbConnections.isDefault,
       status: dbConnections.status,
       createdAt: dbConnections.createdAt,
-      updatedAt: dbConnections.updatedAt
+      updatedAt: dbConnections.updatedAt,
     });
 
   return connection;

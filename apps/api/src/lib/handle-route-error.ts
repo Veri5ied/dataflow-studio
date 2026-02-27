@@ -4,7 +4,7 @@ import { ApiError } from "./api-error";
 
 export function handleRouteError(c: Context, error: unknown) {
   if (error instanceof ApiError) {
-    return c.json({ error: error.message, code: error.code }, error.statusCode);
+    return c.json({ error: error.message, code: error.code }, error.statusCode as never);
   }
 
   if (error instanceof ZodError) {

@@ -7,11 +7,17 @@ import {
   findWorkspaceSubscription,
   recordWebhookEvent,
   upsertBillingAccountForWorkspace,
-  type BillingProvider
+  type BillingProvider,
 } from "../repositories/billing-repository";
 import { upsertUsageCounter } from "../repositories/usage-repository";
-import { getWorkspaceSeatCount, requireWorkspaceAccess } from "./memberships-service";
-import { getCurrentMonthlyPeriod, getWorkspaceCurrentUsage } from "./usage-service";
+import {
+  getWorkspaceSeatCount,
+  requireWorkspaceAccess,
+} from "./memberships-service";
+import {
+  getCurrentMonthlyPeriod,
+  getWorkspaceCurrentUsage,
+} from "./usage-service";
 
 type PlanCode = "cloud-pro-monthly" | "enterprise-yearly";
 
@@ -31,7 +37,7 @@ const PLAN_CATALOG: Plan[] = [
     interval: "monthly",
     seatPriceCents: 1200,
     aiRequestsLimit: 5000,
-    aiTokensLimit: 500000
+    aiTokensLimit: 500000,
   },
   {
     code: "enterprise-yearly",
@@ -39,8 +45,8 @@ const PLAN_CATALOG: Plan[] = [
     interval: "yearly",
     seatPriceCents: 2500,
     aiRequestsLimit: 50000,
-    aiTokensLimit: 5000000
-  }
+    aiTokensLimit: 5000000,
+  },
 ];
 
 const DEFAULT_PROVIDER: BillingProvider = env.BILLING_PROVIDER ?? "polar";
@@ -61,7 +67,10 @@ function getPlanByCode(planCode: string) {
   return PLAN_CATALOG.find((plan) => plan.code === planCode) ?? null;
 }
 
-function getProviderCheckoutUrl(provider: BillingProvider, workspaceId: string) {
+function getProviderCheckoutUrl(
+  provider: BillingProvider,
+  workspaceId: string,
+) {
   if (provider === "polar") {
     return `https://polar.sh/checkout/mock/${workspaceId}`;
   }
@@ -81,7 +90,9 @@ function getPeriodRange(interval: "monthly" | "yearly") {
   if (interval === "yearly") {
     const now = new Date();
     const periodStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
-    const periodEnd = new Date(Date.UTC(now.getUTCFullYear() + 1, 0, 1, 0, 0, 0));
+    const periodEnd = new Date(
+      Date.UTC(now.getUTCFullYear() + 1, 0, 1, 0, 0, 0),
+    );
     return { periodStart, periodEnd };
   }
 
@@ -96,14 +107,14 @@ export async function getBillingPlans() {
   return {
     provider: DEFAULT_PROVIDER,
     plans: PLAN_CATALOG,
-    trialDays: DEFAULT_TRIAL_DAYS
+    trialDays: DEFAULT_TRIAL_DAYS,
   };
 }
 
 export async function createCheckoutSessionForUser(
   database: Database,
   userId: string,
-  input: CheckoutSessionInput
+  input: CheckoutSessionInput,
 ) {
   if (input.seats < 1) {
     throw new ApiError(400, "seats must be at least 1.", "invalid_seat_count");
@@ -114,14 +125,17 @@ export async function createCheckoutSessionForUser(
     throw new ApiError(400, "Unknown plan code.", "invalid_plan_code");
   }
 
-  await requireWorkspaceAccess(database, input.workspaceId, userId, ["owner", "admin"]);
+  await requireWorkspaceAccess(database, input.workspaceId, userId, [
+    "owner",
+    "admin",
+  ]);
 
   const provider = input.provider ?? DEFAULT_PROVIDER;
   const account = await upsertBillingAccountForWorkspace(database, {
     workspaceId: input.workspaceId,
     provider,
     status: "trialing",
-    trialEndsAt: getTrialEndDate()
+    trialEndsAt: getTrialEndDate(),
   });
 
   const { periodStart, periodEnd } = getPeriodRange(plan.interval);
@@ -134,7 +148,7 @@ export async function createCheckoutSessionForUser(
     seatsPurchased: input.seats,
     status: "trialing",
     currentPeriodStart: periodStart,
-    currentPeriodEnd: periodEnd
+    currentPeriodEnd: periodEnd,
   });
 
   await upsertUsageCounter(database, {
@@ -143,7 +157,7 @@ export async function createCheckoutSessionForUser(
     periodStart,
     periodEnd,
     quantity: 0,
-    limitQuantity: input.seats
+    limitQuantity: input.seats,
   });
 
   await upsertUsageCounter(database, {
@@ -152,7 +166,7 @@ export async function createCheckoutSessionForUser(
     periodStart,
     periodEnd,
     quantity: 0,
-    limitQuantity: plan.aiRequestsLimit
+    limitQuantity: plan.aiRequestsLimit,
   });
 
   await upsertUsageCounter(database, {
@@ -161,46 +175,60 @@ export async function createCheckoutSessionForUser(
     periodStart,
     periodEnd,
     quantity: 0,
-    limitQuantity: plan.aiTokensLimit
+    limitQuantity: plan.aiTokensLimit,
   });
 
   return {
     provider,
     checkoutUrl: getProviderCheckoutUrl(provider, input.workspaceId),
     billingAccount: account,
-    subscription
+    subscription,
   };
 }
 
 export async function createPortalSessionForUser(
   database: Database,
   userId: string,
-  input: PortalSessionInput
+  input: PortalSessionInput,
 ) {
-  await requireWorkspaceAccess(database, input.workspaceId, userId, ["owner", "admin"]);
+  await requireWorkspaceAccess(database, input.workspaceId, userId, [
+    "owner",
+    "admin",
+  ]);
 
-  const account = await findBillingAccountByWorkspaceId(database, input.workspaceId);
+  const account = await findBillingAccountByWorkspaceId(
+    database,
+    input.workspaceId,
+  );
   if (!account) {
-    throw new ApiError(404, "Billing account not found for workspace.", "billing_account_not_found");
+    throw new ApiError(
+      404,
+      "Billing account not found for workspace.",
+      "billing_account_not_found",
+    );
   }
 
   return {
     provider: account.provider,
     portalUrl: getProviderPortalUrl(account.provider, input.workspaceId),
-    billingAccount: account
+    billingAccount: account,
   };
 }
 
 export async function getWorkspaceSubscriptionForUser(
   database: Database,
   userId: string,
-  workspaceId: string
+  workspaceId: string,
 ) {
   await requireWorkspaceAccess(database, workspaceId, userId);
 
   const snapshot = await findWorkspaceSubscription(database, workspaceId);
   if (!snapshot) {
-    throw new ApiError(404, "No billing configuration for workspace.", "billing_not_configured");
+    throw new ApiError(
+      404,
+      "No billing configuration for workspace.",
+      "billing_not_configured",
+    );
   }
 
   const seatsUsed = await getWorkspaceSeatCount(database, workspaceId);
@@ -209,14 +237,14 @@ export async function getWorkspaceSubscriptionForUser(
     provider: snapshot.account.provider,
     account: snapshot.account,
     subscription: snapshot.subscription,
-    seatsUsed
+    seatsUsed,
   };
 }
 
 export async function getWorkspaceUsageForUser(
   database: Database,
   userId: string,
-  workspaceId: string
+  workspaceId: string,
 ) {
   await requireWorkspaceAccess(database, workspaceId, userId);
 
@@ -228,7 +256,7 @@ export async function getWorkspaceUsageForUser(
     aiRequests: { used: 0, limit: null as number | null },
     aiTokens: { used: 0, limit: null as number | null },
     periodStart: null as Date | null,
-    periodEnd: null as Date | null
+    periodEnd: null as Date | null,
   };
 
   for (const counter of counters) {
@@ -254,8 +282,10 @@ export async function getWorkspaceUsageForUser(
 }
 
 function getWebhookEventMetadata(payload: Record<string, unknown>) {
-  const providerEventId = typeof payload.id === "string" && payload.id ? payload.id : null;
-  const eventType = typeof payload.type === "string" && payload.type ? payload.type : "unknown";
+  const providerEventId =
+    typeof payload.id === "string" && payload.id ? payload.id : null;
+  const eventType =
+    typeof payload.type === "string" && payload.type ? payload.type : "unknown";
   return { providerEventId, eventType };
 }
 
@@ -263,7 +293,7 @@ export async function recordBillingWebhook(
   database: Database,
   provider: BillingProvider,
   payload: Record<string, unknown>,
-  signature: string | null
+  signature: string | null,
 ) {
   const { providerEventId, eventType } = getWebhookEventMetadata(payload);
 
@@ -272,7 +302,7 @@ export async function recordBillingWebhook(
     providerEventId: providerEventId ?? `${provider}-event-${Date.now()}`,
     eventType,
     payload,
-    signature
+    signature,
   });
 
   return event;

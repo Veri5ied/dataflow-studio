@@ -1,4 +1,4 @@
-# API Reference (Scaffold)
+# API Reference
 
 All routes are grouped under `/api/v1` in the API app.
 
@@ -7,6 +7,8 @@ All routes are grouped under `/api/v1` in the API app.
 - `GET /auth/oauth/github`
 - `GET /auth/oauth/google`
 - `GET /auth/oauth/callback`
+- `POST /auth/dev/session` (development/testing only)
+- `GET /auth/me`
 
 ## Workspaces
 
@@ -45,4 +47,5 @@ All routes are grouped under `/api/v1` in the API app.
 - OAuth routes are public entry points.
 - Billing webhook routes are public (`/billing/webhook/*`).
 - Workspace, schema, query, AI, and non-webhook billing routes require authenticated session middleware.
-- Current scaffold expects authenticated user id in header `x-user-id` (UUID) on protected routes.
+- Protected routes require `Authorization: Bearer <jwt>`.
+- `POST /auth/dev/session` returns a JWT for local testing using an existing `users.id`.

@@ -12,7 +12,7 @@ import {
   findWorkspaceById,
   findWorkspaceBySlug,
   listWorkspacesForUser,
-  unsetDefaultDbConnections
+  unsetDefaultDbConnections,
 } from "../repositories/workspaces-repository";
 import { requireWorkspaceAccess } from "./memberships-service";
 import { ensureWorkspaceUsageBaselines } from "./usage-service";
@@ -32,7 +32,13 @@ export type ConnectDbInput = {
   databaseName: string;
   username: string;
   password: string;
-  sslMode?: "disable" | "allow" | "prefer" | "require" | "verify-ca" | "verify-full";
+  sslMode?:
+    | "disable"
+    | "allow"
+    | "prefer"
+    | "require"
+    | "verify-ca"
+    | "verify-full";
   isDefault?: boolean;
 };
 
@@ -50,7 +56,11 @@ function getTrialEndDate() {
 async function buildUniqueWorkspaceSlug(database: Database, source: string) {
   const base = slugify(source);
   if (!base) {
-    throw new ApiError(400, "Unable to derive workspace slug.", "invalid_workspace_slug");
+    throw new ApiError(
+      400,
+      "Unable to derive workspace slug.",
+      "invalid_workspace_slug",
+    );
   }
 
   let candidate = base;
@@ -60,7 +70,11 @@ async function buildUniqueWorkspaceSlug(database: Database, source: string) {
     candidate = `${base}-${suffix}`;
     suffix += 1;
     if (suffix > 100) {
-      throw new ApiError(409, "Unable to allocate a unique workspace slug.", "workspace_slug_conflict");
+      throw new ApiError(
+        409,
+        "Unable to allocate a unique workspace slug.",
+        "workspace_slug_conflict",
+      );
     }
   }
 
@@ -70,11 +84,15 @@ async function buildUniqueWorkspaceSlug(database: Database, source: string) {
 export async function createWorkspaceForUser(
   database: Database,
   userId: string,
-  input: CreateWorkspaceInput
+  input: CreateWorkspaceInput,
 ) {
   const user = await findUserById(database, userId);
   if (!user) {
-    throw new ApiError(404, "Authenticated user does not exist.", "user_not_found");
+    throw new ApiError(
+      404,
+      "Authenticated user does not exist.",
+      "user_not_found",
+    );
   }
 
   const requestedSlug = input.slug?.trim() || input.name;
@@ -86,7 +104,7 @@ export async function createWorkspaceForUser(
       name: input.name.trim(),
       description: input.description?.trim() || null,
       visibility: input.visibility ?? "private",
-      createdByUserId: userId
+      createdByUserId: userId,
     });
 
     await addWorkspaceOwnerMembership(tx, workspace.id, userId);
@@ -95,14 +113,14 @@ export async function createWorkspaceForUser(
       workspaceId: workspace.id,
       provider: input.billingProvider ?? BILLING_PROVIDER_DEFAULT,
       status: "trialing",
-      trialEndsAt: getTrialEndDate()
+      trialEndsAt: getTrialEndDate(),
     });
 
     await ensureWorkspaceUsageBaselines(tx, workspace.id);
 
     return {
       workspace,
-      billingAccount
+      billingAccount,
     };
   });
 }
@@ -111,14 +129,17 @@ export async function connectWorkspaceDatabaseForUser(
   database: Database,
   userId: string,
   workspaceId: string,
-  input: ConnectDbInput
+  input: ConnectDbInput,
 ) {
   const workspace = await findWorkspaceById(database, workspaceId);
   if (!workspace) {
     throw new ApiError(404, "Workspace not found.", "workspace_not_found");
   }
 
-  await requireWorkspaceAccess(database, workspaceId, userId, ["owner", "admin"]);
+  await requireWorkspaceAccess(database, workspaceId, userId, [
+    "owner",
+    "admin",
+  ]);
 
   const isDefault = input.isDefault ?? true;
   if (isDefault) {
@@ -135,7 +156,7 @@ export async function connectWorkspaceDatabaseForUser(
     encryptedPassword: encryptAtRest(input.password),
     sslMode: input.sslMode ?? "require",
     isDefault,
-    createdByUserId: userId
+    createdByUserId: userId,
   });
 
   return connection;

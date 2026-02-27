@@ -8,6 +8,17 @@
 6. Start GUI: `pnpm dev:gui`
 7. Start API: `pnpm dev:api`
 
+## Local API auth testing
+
+1. Create a development JWT:
+   - `POST http://localhost:3001/api/v1/auth/dev/session`
+   - Body:
+     ```json
+     { "userId": "YOUR_USERS_TABLE_UUID" }
+     ```
+2. Use the returned `accessToken` in protected routes:
+   - `Authorization: Bearer <accessToken>`
+
 Migration policy is documented in `docs/migration-strategy.md`.
 
 Docker scaffold files are in `tooling/docker`.

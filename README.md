@@ -76,7 +76,7 @@ dataflow-studio/
 
 All backend routes are under `/api/v1`.
 
-- Auth: `/auth/oauth/github`, `/auth/oauth/google`, `/auth/oauth/callback`
+- Auth: `/auth/oauth/github`, `/auth/oauth/google`, `/auth/oauth/callback`, `/auth/me`
 - Workspaces: `/workspaces`, `/workspaces/:id/connect-db`
 - Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables/:table`
 - Queries: `/workspaces/:id/query`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
@@ -123,6 +123,8 @@ All backend routes are under `/api/v1`.
 - `OAUTH_GITHUB_CLIENT_SECRET`
 - `OAUTH_GOOGLE_CLIENT_ID`
 - `OAUTH_GOOGLE_CLIENT_SECRET`
+- `OAUTH_GITHUB_REDIRECT_URI` (optional override)
+- `OAUTH_GOOGLE_REDIRECT_URI` (optional override)
 - `REDIS_URL`
 - `JWT_SECRET`
 - `ENCRYPTION_SECRET`
@@ -156,8 +158,9 @@ Scaffolded deployment files are in `tooling/docker/`:
 
 ## Status
 
-Repository is in `api-foundation-v1` implementation mode.
+Repository is in `api-foundation-v1` with `auth-session-core` implementation mode.
 
 - Internal DB schema + migrations are implemented (SQL-first runtime, Drizzle schema/query layer).
 - Workspace and billing API routes are wired to repositories/services with real DB reads/writes.
-- Remaining major milestones: OAuth/session core, query engine execution/cancel flow, AI guardrails, and hardening.
+- OAuth/session core is implemented with GitHub/Google callback exchange and JWT-protected API middleware.
+- Remaining major milestones: query engine execution/cancel flow, AI guardrails, and hardening.

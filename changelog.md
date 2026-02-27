@@ -15,3 +15,5 @@ All notable changes to this project will be documented in this file.
 - Internal app PostgreSQL schema migration + seed scaffolding for API foundation
 - Drizzle ORM integration for API schema typing and migration generation
 - API domain repositories/services and DB-backed workspace/billing endpoints
+- OAuth/session core with managed clients (openid-client + Octokit), callback exchange, and JWT middleware
+- Auth endpoints for `/auth/me` and development JWT issuance (`/auth/dev/session`)
