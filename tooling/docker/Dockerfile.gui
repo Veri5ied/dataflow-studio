@@ -1,5 +1,0 @@
-# DataFlow Studio GUI scaffold Dockerfile
-FROM node:22-alpine
-WORKDIR /app
-COPY . .
-CMD ["sh", "-c", "echo 'GUI container scaffold. Add production build steps.' && sleep infinity"]

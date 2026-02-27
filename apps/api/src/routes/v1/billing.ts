@@ -13,9 +13,8 @@ import {
 
 const checkoutSchema = z.object({
   workspaceId: z.string().uuid(),
-  planCode: z.enum(["cloud-pro-monthly", "enterprise-yearly"]),
-  seats: z.number().int().positive(),
-  provider: z.enum(["stripe", "polar"]).optional()
+  planCode: z.enum(["cloud-pro-monthly"]),
+  seats: z.number().int().positive()
 });
 
 const portalSchema = z.object({

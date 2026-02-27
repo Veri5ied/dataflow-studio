@@ -20,8 +20,7 @@ const createWorkspaceSchema = z.object({
   name: z.string().min(1),
   slug: z.string().optional(),
   description: z.string().optional(),
-  visibility: z.enum(["private", "public"]).optional(),
-  billingProvider: z.enum(["stripe", "polar"]).optional()
+  visibility: z.enum(["private", "public"]).optional()
 });
 
 const networkConnectDbSchema = z.object({

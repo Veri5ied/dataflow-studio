@@ -5,8 +5,22 @@
 3. Run database migrations: `pnpm db:migrate`
 4. Optional seed data: `pnpm db:seed`
 5. Optional Drizzle migration generation: `pnpm --filter @dataflow/api db:generate`
-6. Start GUI: `pnpm dev:gui`
+6. Start web GUI: `pnpm dev:web-gui`
 7. Start API: `pnpm dev:api`
+
+## Runtime mode selection
+
+Set mode in `.env` before starting API:
+
+- Cloud Pro:
+  - `DEPLOYMENT_MODE=cloud`
+  - `SELF_HOST_EDITION=community` (ignored in cloud mode)
+- Self-host Community:
+  - `DEPLOYMENT_MODE=self-host`
+  - `SELF_HOST_EDITION=community`
+- Self-host Enterprise:
+  - `DEPLOYMENT_MODE=self-host`
+  - `SELF_HOST_EDITION=enterprise`
 
 ## Local API auth testing
 
@@ -135,6 +149,57 @@
 4. Validate local automated tests:
    - `pnpm --filter @dataflow/api test`
 
+## Enterprise license smoke tests
+
+These endpoints are available only in self-host enterprise mode.
+
+1. Activate license:
+   - `POST http://localhost:3001/api/v1/licenses/activate`
+   - Body:
+     ```json
+     {
+       "workspaceId": "{workspaceId}",
+       "licenseKey": "dfls_<payload>.<signature>",
+       "instanceFingerprint": "self-host-node-01"
+     }
+     ```
+2. Read license status:
+   - `GET http://localhost:3001/api/v1/licenses/workspace/{workspaceId}/status`
+3. Deactivate activation fingerprint:
+   - `POST http://localhost:3001/api/v1/licenses/deactivate`
+   - Body:
+     ```json
+     {
+       "workspaceId": "{workspaceId}",
+       "instanceFingerprint": "self-host-node-01"
+     }
+     ```
+
 Migration policy is documented in `docs/migration-strategy.md`.
+
+## Cloud billing smoke tests
+
+These endpoints are available only in cloud mode.
+
+1. List plans:
+   - `GET http://localhost:3001/api/v1/billing/plans`
+2. Create checkout session:
+   - `POST http://localhost:3001/api/v1/billing/checkout-session`
+   - Body:
+     ```json
+     {
+       "workspaceId": "{workspaceId}",
+       "planCode": "cloud-pro-monthly",
+       "seats": 5
+     }
+     ```
+3. Create portal session:
+   - `POST http://localhost:3001/api/v1/billing/portal-session`
+   - Body:
+     ```json
+     {
+       "workspaceId": "{workspaceId}"
+     }
+     ```
 
 Docker scaffold files are in `tooling/docker`.

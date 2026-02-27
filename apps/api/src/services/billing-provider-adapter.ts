@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { BillingProvider } from "../repositories/billing-repository";
+import { env } from "../lib/env";
 
 export type BillingProviderAdapter = {
   provider: BillingProvider;
@@ -48,17 +49,36 @@ function verifyHmacSha256(
   });
 }
 
+function joinPath(baseUrl: string, path: string) {
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  const normalizedPath = path.replace(/^\/+/, "");
+  return `${normalizedBase}/${normalizedPath}`;
+}
+
+function requireEnvUrl(
+  value: string | undefined,
+  envVarName: "POLAR_CHECKOUT_BASE_URL" | "POLAR_PORTAL_BASE_URL",
+) {
+  if (!value) {
+    throw new Error(`${envVarName} is required for Polar billing URLs.`);
+  }
+
+  return value;
+}
+
 const adapters: Record<BillingProvider, BillingProviderAdapter> = {
   polar: {
     provider: "polar",
-    getCheckoutUrl: (workspaceId) => `https://polar.sh/checkout/mock/${workspaceId}`,
-    getPortalUrl: (workspaceId) => `https://polar.sh/portal/mock/${workspaceId}`,
-    verifySignature: verifyHmacSha256,
-  },
-  stripe: {
-    provider: "stripe",
-    getCheckoutUrl: (workspaceId) => `https://dashboard.stripe.com/payments/mock/${workspaceId}`,
-    getPortalUrl: (workspaceId) => `https://dashboard.stripe.com/customers/mock/${workspaceId}`,
+    getCheckoutUrl: (workspaceId) =>
+      joinPath(
+        requireEnvUrl(env.POLAR_CHECKOUT_BASE_URL, "POLAR_CHECKOUT_BASE_URL"),
+        workspaceId,
+      ),
+    getPortalUrl: (workspaceId) =>
+      joinPath(
+        requireEnvUrl(env.POLAR_PORTAL_BASE_URL, "POLAR_PORTAL_BASE_URL"),
+        workspaceId,
+      ),
     verifySignature: verifyHmacSha256,
   },
 };

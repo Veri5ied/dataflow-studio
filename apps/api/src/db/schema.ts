@@ -59,10 +59,7 @@ export const dbConnectionStatusEnum = pgEnum("db_connection_status", [
   "disabled",
   "error",
 ]);
-export const billingProviderEnum = pgEnum("billing_provider", [
-  "stripe",
-  "polar",
-]);
+export const billingProviderEnum = pgEnum("billing_provider", ["polar"]);
 export const billingStatusEnum = pgEnum("billing_status", [
   "trialing",
   "active",
@@ -87,6 +84,18 @@ export const webhookStatusEnum = pgEnum("webhook_status", [
   "processed",
   "failed",
   "ignored",
+]);
+export const licenseStatusEnum = pgEnum("license_status", [
+  "active",
+  "expired",
+  "revoked",
+]);
+export const licenseEventTypeEnum = pgEnum("license_event_type", [
+  "activated",
+  "deactivated",
+  "refreshed",
+  "revoked",
+  "sync_failed",
 ]);
 
 export const users = pgTable(
@@ -524,5 +533,118 @@ export const webhookEvents = pgTable(
       table.status,
       table.createdAt,
     ),
+  }),
+);
+
+export const enterpriseLicenses = pgTable(
+  "enterprise_licenses",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    licenseId: text("license_id").notNull(),
+    licenseKeyHash: text("license_key_hash").notNull(),
+    planCode: text("plan_code").notNull().default("enterprise"),
+    status: licenseStatusEnum("status").notNull().default("active"),
+    seatsMax: integer("seats_max").notNull().default(1),
+    aiEnabled: boolean("ai_enabled").notNull().default(false),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    workspaceUidx: uniqueIndex("enterprise_licenses_workspace_uidx").on(
+      table.workspaceId,
+    ),
+    licenseIdUidx: uniqueIndex("enterprise_licenses_license_id_uidx").on(
+      table.licenseId,
+    ),
+    licenseKeyHashUidx: uniqueIndex(
+      "enterprise_licenses_license_key_hash_uidx",
+    ).on(table.licenseKeyHash),
+    statusIdx: index("idx_enterprise_licenses_status").on(table.status),
+  }),
+);
+
+export const licenseActivations = pgTable(
+  "license_activations",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    licenseId: uuid("license_id")
+      .notNull()
+      .references(() => enterpriseLicenses.id, { onDelete: "cascade" }),
+    instanceFingerprint: text("instance_fingerprint").notNull(),
+    activatedByUserId: uuid("activated_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    activatedAt: timestamp("activated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    licenseFingerprintUidx: uniqueIndex(
+      "license_activations_license_fingerprint_uidx",
+    ).on(table.licenseId, table.instanceFingerprint),
+    activeLicenseIdx: index("idx_license_activations_active").on(
+      table.licenseId,
+      table.deactivatedAt,
+    ),
+  }),
+);
+
+export const licenseAuditEvents = pgTable(
+  "license_audit_events",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    licenseId: uuid("license_id").references(() => enterpriseLicenses.id, {
+      onDelete: "set null",
+    }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    eventType: licenseEventTypeEnum("event_type").notNull(),
+    payload: jsonb("payload")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    workspaceCreatedAtIdx: index("idx_license_audit_events_workspace_created_at").on(
+      table.workspaceId,
+      table.createdAt,
+    ),
+    licenseIdx: index("idx_license_audit_events_license_id").on(table.licenseId),
   }),
 );

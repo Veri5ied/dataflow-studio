@@ -1,6 +1,7 @@
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
 import { env } from "../lib/env";
+import { assertCloudBillingEnabled } from "../lib/commercial-mode";
 import {
   createOrUpdateSubscription,
   findBillingAccountByWorkspaceId,
@@ -23,7 +24,7 @@ import {
 } from "./usage-service";
 import { getBillingProviderAdapter } from "./billing-provider-adapter";
 
-type PlanCode = "cloud-pro-monthly" | "enterprise-yearly";
+type PlanCode = "cloud-pro-monthly";
 
 type Plan = {
   code: PlanCode;
@@ -39,28 +40,19 @@ const PLAN_CATALOG: Plan[] = [
     code: "cloud-pro-monthly",
     label: "Cloud Pro",
     interval: "monthly",
-    seatPriceCents: 1200,
-    aiRequestsLimit: 5000,
-    aiTokensLimit: 500000,
-  },
-  {
-    code: "enterprise-yearly",
-    label: "Enterprise",
-    interval: "yearly",
-    seatPriceCents: 2500,
-    aiRequestsLimit: 50000,
-    aiTokensLimit: 5000000,
+    seatPriceCents: env.CLOUD_PRO_SEAT_PRICE_CENTS ?? 500,
+    aiRequestsLimit: env.CLOUD_PRO_AI_REQUESTS_LIMIT ?? 5000,
+    aiTokensLimit: env.CLOUD_PRO_AI_TOKENS_LIMIT ?? 500000,
   },
 ];
 
-const DEFAULT_PROVIDER: BillingProvider = env.BILLING_PROVIDER ?? "polar";
+const POLAR_PROVIDER: BillingProvider = "polar";
 const DEFAULT_TRIAL_DAYS = env.TRIAL_DAYS ?? 14;
 
 export type CheckoutSessionInput = {
   workspaceId: string;
   planCode: PlanCode;
   seats: number;
-  provider?: BillingProvider;
 };
 
 export type PortalSessionInput = {
@@ -72,14 +64,23 @@ function getPlanByCode(planCode: string) {
 }
 
 function getProviderCheckoutUrl(
-  provider: BillingProvider,
   workspaceId: string,
 ) {
-  return getBillingProviderAdapter(provider).getCheckoutUrl(workspaceId);
+  return getBillingProviderAdapter("polar").getCheckoutUrl(workspaceId);
 }
 
-function getProviderPortalUrl(provider: BillingProvider, workspaceId: string) {
-  return getBillingProviderAdapter(provider).getPortalUrl(workspaceId);
+function getProviderPortalUrl(workspaceId: string) {
+  return getBillingProviderAdapter("polar").getPortalUrl(workspaceId);
+}
+
+function assertPolarBillingUrlsConfigured() {
+  if (!env.POLAR_CHECKOUT_BASE_URL || !env.POLAR_PORTAL_BASE_URL) {
+    throw new ApiError(
+      503,
+      "Polar billing URLs are not configured.",
+      "billing_not_configured",
+    );
+  }
 }
 
 function getPeriodRange(interval: "monthly" | "yearly") {
@@ -100,8 +101,10 @@ function getTrialEndDate() {
 }
 
 export async function getBillingPlans() {
+  assertCloudBillingEnabled();
+
   return {
-    provider: DEFAULT_PROVIDER,
+    provider: POLAR_PROVIDER,
     plans: PLAN_CATALOG,
     trialDays: DEFAULT_TRIAL_DAYS,
   };
@@ -112,6 +115,9 @@ export async function createCheckoutSessionForUser(
   userId: string,
   input: CheckoutSessionInput,
 ) {
+  assertCloudBillingEnabled();
+  assertPolarBillingUrlsConfigured();
+
   if (input.seats < 1) {
     throw new ApiError(400, "seats must be at least 1.", "invalid_seat_count");
   }
@@ -135,7 +141,7 @@ export async function createCheckoutSessionForUser(
     );
   }
 
-  const provider = input.provider ?? DEFAULT_PROVIDER;
+  const provider: BillingProvider = POLAR_PROVIDER;
   const account = await upsertBillingAccountForWorkspace(database, {
     workspaceId: input.workspaceId,
     provider,
@@ -185,7 +191,7 @@ export async function createCheckoutSessionForUser(
 
   return {
     provider,
-    checkoutUrl: getProviderCheckoutUrl(provider, input.workspaceId),
+    checkoutUrl: getProviderCheckoutUrl(input.workspaceId),
     billingAccount: account,
     subscription,
   };
@@ -196,6 +202,9 @@ export async function createPortalSessionForUser(
   userId: string,
   input: PortalSessionInput,
 ) {
+  assertCloudBillingEnabled();
+  assertPolarBillingUrlsConfigured();
+
   await requireWorkspaceAccess(database, input.workspaceId, userId, [
     "owner",
     "admin",
@@ -215,7 +224,7 @@ export async function createPortalSessionForUser(
 
   return {
     provider: account.provider,
-    portalUrl: getProviderPortalUrl(account.provider, input.workspaceId),
+    portalUrl: getProviderPortalUrl(input.workspaceId),
     billingAccount: account,
   };
 }
@@ -225,6 +234,7 @@ export async function getWorkspaceSubscriptionForUser(
   userId: string,
   workspaceId: string,
 ) {
+  assertCloudBillingEnabled();
   await requireWorkspaceAccess(database, workspaceId, userId);
 
   const snapshot = await findWorkspaceSubscription(database, workspaceId);
@@ -251,6 +261,7 @@ export async function getWorkspaceUsageForUser(
   userId: string,
   workspaceId: string,
 ) {
+  assertCloudBillingEnabled();
   await requireWorkspaceAccess(database, workspaceId, userId);
 
   const counters = await getWorkspaceCurrentUsage(database, workspaceId);
@@ -294,23 +305,18 @@ function getWebhookEventMetadata(payload: Record<string, unknown>) {
   return { providerEventId, eventType };
 }
 
-function getWebhookSecret(provider: BillingProvider) {
-  if (provider === "stripe") {
-    return env.STRIPE_WEBHOOK_SECRET ?? null;
-  }
-
+function getWebhookSecret() {
   return env.POLAR_WEBHOOK_SECRET ?? null;
 }
 
 export function verifyWebhookSignature(
-  provider: BillingProvider,
   rawBody: string,
   signatureHeader: string | null,
 ) {
-  return getBillingProviderAdapter(provider).verifySignature(
+  return getBillingProviderAdapter("polar").verifySignature(
     rawBody,
     signatureHeader,
-    getWebhookSecret(provider),
+    getWebhookSecret(),
   );
 }
 
@@ -430,12 +436,13 @@ function isPlanCode(value: string | null): value is PlanCode {
 
 export async function processBillingWebhook(
   database: Database,
-  provider: BillingProvider,
   payload: Record<string, unknown>,
   signature: string | null,
   rawBody: string,
 ) {
-  if (!verifyWebhookSignature(provider, rawBody, signature)) {
+  assertCloudBillingEnabled();
+  const provider: BillingProvider = "polar";
+  if (!verifyWebhookSignature(rawBody, signature)) {
     throw new ApiError(401, "Invalid webhook signature.", "invalid_webhook_signature");
   }
 

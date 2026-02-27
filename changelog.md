@@ -25,5 +25,12 @@ All notable changes to this project will be documented in this file.
 - Multi-relational DB connector runtime for `postgresql`, `mysql`, `sqlite`, and `sqlserver` with engine-aware schema/query operations
 - AI endpoints with usage quota guardrails, metering, and persistent ai_logs audit entries
 - Real multi-provider AI execution via Vercel AI SDK (`openai`, `anthropic`, `google`, and `openai-compatible`) with per-request model selection
+- Polar-only cloud billing runtime (Stripe paths removed from API routes/config)
+- Enterprise self-host licensing scaffolding with activation/deactivation/status APIs and persisted entitlements
+- Project license updated to `AGPL-3.0-only` with enterprise commercial licensing note in docs
+- Runtime mode gating for commercial paths (`DEPLOYMENT_MODE`, `SELF_HOST_EDITION`) across billing, licensing, workspace bootstrap, and AI entitlement checks
+- Edition capability matrix documentation (`docs/edition-matrix.md`) and setup/API docs updated for cloud vs self-host behavior
+- Frontend app renamed from `apps/gui` to `apps/web-gui` and re-scaffolded with TanStack Start
+- Docker deployment scaffolds replaced with runnable app images (`Dockerfile.api`, `Dockerfile.web-gui`, compose updates)
 - Billing webhook verification/idempotency and subscription sync processing
 - API hardening: request IDs, route rate-limiting, and automated backend tests

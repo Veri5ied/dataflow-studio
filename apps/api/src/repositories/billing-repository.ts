@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { billingAccounts, subscriptions, webhookEvents } from "../db/schema";
 import type { DbExecutor } from "./db-executor";
 
-export type BillingProvider = "stripe" | "polar";
+export type BillingProvider = "polar";
 
 export async function upsertBillingAccountForWorkspace(
   executor: DbExecutor,

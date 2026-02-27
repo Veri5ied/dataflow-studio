@@ -1,70 +1,68 @@
-# Billing Model
+# Billing and Licensing Model
 
-## Commercial strategy
+## Runtime model
 
-DataFlow Studio uses one billing engine with two commercial offers.
+DataFlow Studio uses a split commercial runtime:
 
-Supported billing providers:
+1. Cloud Pro (`DEPLOYMENT_MODE=cloud`)
+2. Self-host Community (`DEPLOYMENT_MODE=self-host`, `SELF_HOST_EDITION=community`)
+3. Self-host Enterprise (`DEPLOYMENT_MODE=self-host`, `SELF_HOST_EDITION=enterprise`)
 
-- Stripe
-- Polar (polar.sh)
+Cloud billing and self-host licensing are separate enforcement paths.
 
-Required provider env vars:
+## Cloud Pro
 
-- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- Polar: `POLAR_ACCESS_TOKEN`, `POLAR_ORGANIZATION_ID`, `POLAR_WEBHOOK_SECRET`
+- Billing provider: Polar only
+- Trial-first onboarding (no permanent free cloud tier)
+- Seat-based subscription
+- AI access requires active/trialing cloud billing state
+- Billing APIs and Polar webhooks are enabled only in cloud mode
 
-1. Cloud Pro (self-serve)
-2. Enterprise (sales-led)
+Cloud env contract:
 
-There is no permanent free cloud tier. New cloud workspaces receive a time-limited trial.
+- `POLAR_ACCESS_TOKEN`
+- `POLAR_ORGANIZATION_ID`
+- `POLAR_WEBHOOK_SECRET`
+- `POLAR_CHECKOUT_BASE_URL`
+- `POLAR_PORTAL_BASE_URL`
+- `TRIAL_DAYS`
+- `CLOUD_TRIAL_SEAT_LIMIT`
+- `CLOUD_TRIAL_AI_REQUESTS_LIMIT`
+- `CLOUD_TRIAL_AI_TOKENS_LIMIT`
+- `CLOUD_PRO_SEAT_PRICE_CENTS`
+- `CLOUD_PRO_AI_REQUESTS_LIMIT`
+- `CLOUD_PRO_AI_TOKENS_LIMIT`
 
-## Offer definitions
+## Self-host Community
 
-### Cloud Pro
+- AGPL runtime
+- No in-app checkout or billing portal
+- No Polar webhook processing
+- AI may run with user-provided model keys
+- Seats are not monetized in community mode
 
-- 14-day trial on workspace creation
-- Paid subscription required after trial expires
-- Seat-based pricing
-- AI usage is metered and quota-enforced
+## Self-host Enterprise
 
-### Enterprise
+- Commercial self-host entitlement via signed license keys
+- License activation/deactivation/status APIs enabled
+- Seat capacity enforced by license entitlements
+- AI requires active, non-expired license with `aiEnabled=true`
 
-- Annual contract
-- Higher seat commitments and invoicing support
-- Advanced controls (SSO, audit, enterprise RBAC, support SLA)
-- Optional paid self-host license for enterprise package
+Enterprise self-host env contract:
 
-## Seat model
+- `LICENSE_VERIFICATION_SECRET`
+- `LICENSE_SYNC_GRACE_HOURS`
 
-- A seat is an active, accepted workspace member.
-- Pending invitations do not consume seats.
-- Seat checks run when invitations are accepted or members are added.
-- Owners/admins can view seat usage and limits.
+## API mode gating summary
 
-## AI billing policy
+- Cloud mode:
+  - `/api/v1/billing/*` enabled
+  - `/api/v1/licenses/*` disabled
+- Self-host community:
+  - `/api/v1/billing/*` disabled
+  - `/api/v1/licenses/*` disabled
+- Self-host enterprise:
+  - `/api/v1/billing/*` disabled
+  - `/api/v1/licenses/*` enabled
 
-- AI is not unlimited on default paid plans.
-- AI usage is tracked per workspace.
-- Each plan includes usage quotas/credits.
-- Overages can be blocked or billed via add-on credits.
-
-## Workspace and billing ownership
-
-- First authenticated user creates the workspace and becomes owner.
-- Workspace owner is linked to the billing account.
-- Owner/admin can manage seats and billing settings.
-
-## Self-host and licensing note
-
-- Self-hosted deployments can run without cloud billing integration.
-- Paid self-host requires enterprise licensing controls outside pure MIT scope.
-- Keep OSS core clear and isolate enterprise-only capabilities where required.
-
-## Initial implementation scope
-
-1. Trial state + expiration timestamps
-2. Workspace subscription state
-3. Seat counting and enforcement hooks
-4. AI usage counters and quota checks
-5. Billing provider adapter and webhook processing
+See `docs/edition-matrix.md` for full feature matrix.

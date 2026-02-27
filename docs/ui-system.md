@@ -13,14 +13,14 @@ DataFlow Studio adopts **shadcn/ui patterns with Base UI primitives**.
 ## Monorepo placement
 
 - Shared components: `packages/ui`
-- App composition and page-level layouts: `apps/gui`
+- App composition and page-level layouts: `apps/web-gui`
 - Styling tokens and utility classes: Tailwind in GUI app and shared component contracts
 
 ## Implementation conventions
 
 - Keep primitives thin and accessible.
 - Build higher-level product components in `packages/ui`.
-- Keep workspace/domain-specific view composition in `apps/gui`.
+- Keep workspace/domain-specific view composition in `apps/web-gui`.
 - Prefer controlled components for editor/forms where query state matters.
 - Keep component APIs typed and stable for reuse.
 

@@ -7,6 +7,7 @@ import type {
 import { encryptAtRest } from "@dataflow/utils";
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
+import { isCloudDeployment } from "../lib/commercial-mode";
 import { env } from "../lib/env";
 import { slugify } from "../lib/slugify";
 import { upsertBillingAccountForWorkspace } from "../repositories/billing-repository";
@@ -28,7 +29,6 @@ export type CreateWorkspaceInput = {
   slug?: string;
   description?: string;
   visibility?: "private" | "public";
-  billingProvider?: "stripe" | "polar";
 };
 
 export type ConnectDbInput = {
@@ -44,7 +44,7 @@ export type ConnectDbInput = {
   isDefault?: boolean;
 };
 
-const BILLING_PROVIDER_DEFAULT = env.BILLING_PROVIDER ?? "polar";
+const POLAR_PROVIDER = "polar" as const;
 const TRIAL_DAYS_DEFAULT = env.TRIAL_DAYS ?? 14;
 
 const DEFAULT_PORTS: Record<Exclude<DatabaseEngine, "sqlite">, number> = {
@@ -160,12 +160,14 @@ export async function createWorkspaceForUser(
 
     await addWorkspaceOwnerMembership(tx, workspace.id, userId);
 
-    const billingAccount = await upsertBillingAccountForWorkspace(tx, {
-      workspaceId: workspace.id,
-      provider: input.billingProvider ?? BILLING_PROVIDER_DEFAULT,
-      status: "trialing",
-      trialEndsAt: getTrialEndDate(),
-    });
+    const billingAccount = isCloudDeployment()
+      ? await upsertBillingAccountForWorkspace(tx, {
+          workspaceId: workspace.id,
+          provider: POLAR_PROVIDER,
+          status: "trialing",
+          trialEndsAt: getTrialEndDate(),
+        })
+      : null;
 
     await ensureWorkspaceUsageBaselines(tx, workspace.id);
 

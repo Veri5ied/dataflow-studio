@@ -9,20 +9,23 @@ It enables teams to connect, explore, query, and manage relational databases fro
 - Authentication: OAuth-only (GitHub and Google)
 - Architecture: Nx monorepo
 - Deployment: self-hosted, Docker-ready
-- Frontend: Next.js web GUI
+- Frontend: TanStack Start web GUI
 - Backend: Node.js + Hono
 - AI: LLM-powered SQL generation/explanation
 - Database support: relational engine abstraction with built-in connectors (`postgresql`, `mysql`, `sqlite`, `sqlserver`)
-- Commercial strategy: trial-first cloud, paid seats, enterprise plan
+- Commercial strategy:
+  - Cloud Pro: Polar billing + paid seats + trial-first onboarding
+  - Self-host Community: AGPL runtime, no in-app billing
+  - Self-host Enterprise: signed license key entitlements
 
-The landing page lives in `apps/gui` at route `/`, isolated from workspace dashboards.
+The landing page lives in `apps/web-gui` at route `/`, isolated from workspace dashboards.
 
 ## 2. Monorepo structure
 
 ```text
 dataflow-studio/
   apps/
-    gui/
+    web-gui/
       pages/
         index.tsx
         workspace/
@@ -55,7 +58,7 @@ dataflow-studio/
 
 ### 3.1 Frontend (Web GUI)
 
-- Next.js
+- TanStack Start
 - TypeScript
 - Tailwind CSS
 - React Query (`@tanstack/react-query`)
@@ -114,15 +117,17 @@ Located in `packages/ai-engine` and responsible for:
 
 ### 3.6 Billing and subscription layer
 
-- One billing engine supporting two offers:
-  - Cloud Pro (self-serve)
-  - Enterprise (sales-led)
-- Billing providers: Stripe or Polar (polar.sh)
-- No permanent free cloud tier
-- Trial-first onboarding for new cloud workspaces
-- Seat-based subscriptions with workspace-level ownership
+- Deployment mode contract:
+  - `DEPLOYMENT_MODE=cloud` enables cloud billing APIs
+  - `DEPLOYMENT_MODE=self-host` disables billing APIs
+- Self-host edition contract:
+  - `SELF_HOST_EDITION=community` disables enterprise licensing APIs
+  - `SELF_HOST_EDITION=enterprise` enables enterprise licensing APIs
+- Cloud billing provider: Polar (polar.sh)
+- No permanent free cloud tier; trial-first onboarding
+- Seat-based subscriptions with workspace-level ownership in cloud mode
 - AI usage metering and quota checks per workspace
-- Optional enterprise paid self-host licensing path
+- Enterprise self-host licensing path with activation + entitlement checks
 
 ## 4. Authentication and authorization
 
@@ -211,7 +216,7 @@ All endpoints protected by OAuth JWT session middleware.
 
 ## 7. Frontend architecture
 
-- Folder root: `apps/gui`
+- Folder root: `apps/web-gui`
 - Landing page: `pages/index.tsx`
 - Workspace pages: `pages/workspace/[workspace-id]/`
 - React Query for schema, query, history, and AI requests
@@ -227,7 +232,7 @@ All endpoints protected by OAuth JWT session middleware.
 
 `tooling/docker/` contains:
 
-- `Dockerfile.gui`
+- `Dockerfile.web-gui`
 - `Dockerfile.api`
 - `docker-compose.yml`
 
@@ -285,7 +290,9 @@ All endpoints protected by OAuth JWT session middleware.
 
 - Full self-host support via Docker Compose
 - Redis optional but recommended
-- Required environment variables:
+- Base env variables:
+  - `DEPLOYMENT_MODE`
+  - `SELF_HOST_EDITION`
   - `OAUTH_GITHUB_CLIENT_ID`
   - `OAUTH_GITHUB_CLIENT_SECRET`
   - `OAUTH_GOOGLE_CLIENT_ID`
@@ -297,13 +304,21 @@ All endpoints protected by OAuth JWT session middleware.
   - `AI_DEFAULT_MODEL` (optional)
   - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` (optional, based on provider)
   - `AI_OPENAI_COMPATIBLE_API_KEY` / `AI_OPENAI_COMPATIBLE_BASE_URL` (optional, for OpenAI-compatible endpoints)
-- `BILLING_PROVIDER`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `POLAR_ACCESS_TOKEN`
-- `POLAR_ORGANIZATION_ID`
-- `POLAR_WEBHOOK_SECRET`
-- `TRIAL_DAYS`
+- Cloud mode env:
+  - `POLAR_ACCESS_TOKEN`
+  - `POLAR_ORGANIZATION_ID`
+  - `POLAR_WEBHOOK_SECRET`
+  - `POLAR_CHECKOUT_BASE_URL` / `POLAR_PORTAL_BASE_URL`
+  - `TRIAL_DAYS`
+  - `CLOUD_TRIAL_SEAT_LIMIT`
+  - `CLOUD_TRIAL_AI_REQUESTS_LIMIT`
+  - `CLOUD_TRIAL_AI_TOKENS_LIMIT`
+  - `CLOUD_PRO_SEAT_PRICE_CENTS`
+  - `CLOUD_PRO_AI_REQUESTS_LIMIT`
+  - `CLOUD_PRO_AI_TOKENS_LIMIT`
+- Self-host enterprise mode env:
+  - `LICENSE_VERIFICATION_SECRET`
+  - `LICENSE_SYNC_GRACE_HOURS`
 
 ## 11. MVP acceptance criteria
 

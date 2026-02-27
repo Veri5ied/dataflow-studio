@@ -4,14 +4,14 @@
 
 DataFlow Studio uses an Nx monorepo with clear app/package boundaries:
 
-- `apps/gui`: Next.js frontend (landing + workspace UI)
+- `apps/web-gui`: TanStack Start frontend (landing + workspace UI)
 - `apps/api`: Hono backend API
 - `packages/*`: shared contracts and runtime libraries
 - `tooling/*`: delivery, deployment, and quality tooling
 
 ## Layer responsibilities
 
-- Presentation: `apps/gui`
+- Presentation: `apps/web-gui`
 - Shared UI system: `packages/ui` (shadcn patterns + Base UI primitives)
 - API and orchestration: `apps/api`
 - AI orchestration: `packages/ai-engine`
