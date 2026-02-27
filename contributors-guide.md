@@ -5,6 +5,7 @@ Thanks for contributing to DataFlow Studio.
 ## Before you start
 
 - Read [README.md](./README.md) for project context.
+- Review licensing terms in [LICENSE](./LICENSE) (`AGPL-3.0-only`) before contributing.
 - Check open issues and roadmap alignment before starting work.
 - Keep changes scoped to one concern per pull request.
 

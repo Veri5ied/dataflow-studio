@@ -7,8 +7,15 @@ import {
 } from "@dataflow/ai-engine";
 import type { Database } from "../lib/db";
 import { ApiError } from "../lib/api-error";
+import {
+  isCloudDeployment,
+  isSelfHostedCommunity,
+  isSelfHostedEnterprise,
+} from "../lib/commercial-mode";
 import { env } from "../lib/env";
 import { insertAiLog } from "../repositories/ai-repository";
+import { findWorkspaceSubscription } from "../repositories/billing-repository";
+import { findEnterpriseLicenseByWorkspaceId } from "../repositories/licenses-repository";
 import { requireWorkspaceAccess } from "./memberships-service";
 import {
   assertWorkspaceUsageCapacity,
@@ -152,6 +159,102 @@ function providerUsageMetadata(usage: LanguageModelUsage) {
   };
 }
 
+function isActiveOrTrialingBillingStatus(status: string) {
+  return status === "active" || status === "trialing";
+}
+
+async function assertCloudWorkspaceAiAccess(
+  database: Database,
+  workspaceId: string,
+) {
+  const snapshot = await findWorkspaceSubscription(database, workspaceId);
+  if (!snapshot) {
+    throw new ApiError(
+      402,
+      "Cloud billing must be configured before using AI.",
+      "cloud_billing_required_for_ai",
+    );
+  }
+
+  const status = snapshot.subscription?.status ?? snapshot.account.status;
+  if (!isActiveOrTrialingBillingStatus(status)) {
+    throw new ApiError(
+      402,
+      "Cloud billing is not active for this workspace.",
+      "cloud_billing_inactive_for_ai",
+    );
+  }
+
+  if (
+    status === "trialing" &&
+    snapshot.account.trialEndsAt &&
+    snapshot.account.trialEndsAt.getTime() < Date.now()
+  ) {
+    throw new ApiError(
+      402,
+      "Cloud trial has expired for this workspace.",
+      "cloud_trial_expired_for_ai",
+    );
+  }
+}
+
+async function assertSelfHostedEnterpriseAiAccess(
+  database: Database,
+  workspaceId: string,
+) {
+  const license = await findEnterpriseLicenseByWorkspaceId(database, workspaceId);
+  if (!license) {
+    throw new ApiError(
+      402,
+      "Enterprise license is required for AI in self-host enterprise mode.",
+      "enterprise_license_required_for_ai",
+    );
+  }
+
+  if (license.status !== "active") {
+    throw new ApiError(
+      402,
+      "Enterprise license is not active.",
+      "enterprise_license_inactive_for_ai",
+    );
+  }
+
+  if (license.expiresAt.getTime() < Date.now()) {
+    throw new ApiError(
+      402,
+      "Enterprise license has expired.",
+      "enterprise_license_expired_for_ai",
+    );
+  }
+
+  if (!license.aiEnabled) {
+    throw new ApiError(
+      403,
+      "AI is not enabled for this enterprise license.",
+      "enterprise_ai_disabled",
+    );
+  }
+}
+
+async function assertAiCommercialAccess(
+  database: Database,
+  workspaceId: string,
+) {
+  if (isCloudDeployment()) {
+    await assertCloudWorkspaceAiAccess(database, workspaceId);
+    return;
+  }
+
+  if (isSelfHostedEnterprise()) {
+    await assertSelfHostedEnterpriseAiAccess(database, workspaceId);
+    return;
+  }
+
+  if (isSelfHostedCommunity()) {
+    return;
+  }
+}
+
 async function enforceAiGuardrails(
   database: Database,
   workspaceId: string,
@@ -190,6 +293,7 @@ export async function generateSqlForUser(
     "editor",
     "viewer",
   ]);
+  await assertAiCommercialAccess(database, input.workspaceId);
 
   await enforceAiGuardrails(
     database,
@@ -258,6 +362,7 @@ export async function explainSqlForUser(
     "editor",
     "viewer",
   ]);
+  await assertAiCommercialAccess(database, input.workspaceId);
 
   await enforceAiGuardrails(
     database,

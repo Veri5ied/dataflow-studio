@@ -5,6 +5,50 @@ import {
 } from "../repositories/usage-repository";
 import type { DbExecutor } from "../repositories/db-executor";
 import { ApiError } from "../lib/api-error";
+import { env } from "../lib/env";
+import {
+  isCloudDeployment,
+  isSelfHostedEnterprise,
+} from "../lib/commercial-mode";
+
+type UsageBaselineOverrides = {
+  seatsLimit?: number | null;
+  aiRequestsLimit?: number | null;
+  aiTokensLimit?: number | null;
+};
+
+function getDefaultWorkspaceUsageLimits() {
+  if (isCloudDeployment()) {
+    return {
+      seatsLimit: env.CLOUD_TRIAL_SEAT_LIMIT ?? 5,
+      aiRequestsLimit: env.CLOUD_TRIAL_AI_REQUESTS_LIMIT ?? 1000,
+      aiTokensLimit: env.CLOUD_TRIAL_AI_TOKENS_LIMIT ?? 100000,
+    };
+  }
+
+  if (isSelfHostedEnterprise()) {
+    return {
+      seatsLimit: 1,
+      aiRequestsLimit: null,
+      aiTokensLimit: null,
+    };
+  }
+
+  return {
+    seatsLimit: null,
+    aiRequestsLimit: null,
+    aiTokensLimit: null,
+  };
+}
+
+function resolveWorkspaceUsageLimits(overrides?: UsageBaselineOverrides) {
+  const defaults = getDefaultWorkspaceUsageLimits();
+  return {
+    seatsLimit: overrides?.seatsLimit ?? defaults.seatsLimit,
+    aiRequestsLimit: overrides?.aiRequestsLimit ?? defaults.aiRequestsLimit,
+    aiTokensLimit: overrides?.aiTokensLimit ?? defaults.aiTokensLimit,
+  };
+}
 
 export function getCurrentMonthlyPeriod(now = new Date()) {
   const periodStart = new Date(
@@ -19,7 +63,9 @@ export function getCurrentMonthlyPeriod(now = new Date()) {
 export async function ensureWorkspaceUsageBaselines(
   database: DbExecutor,
   workspaceId: string,
+  overrides?: UsageBaselineOverrides,
 ) {
+  const limits = resolveWorkspaceUsageLimits(overrides);
   const { periodStart, periodEnd } = getCurrentMonthlyPeriod();
 
   await upsertUsageCounter(database, {
@@ -28,7 +74,7 @@ export async function ensureWorkspaceUsageBaselines(
     periodStart,
     periodEnd,
     quantity: 0,
-    limitQuantity: null,
+    limitQuantity: limits.seatsLimit,
   });
 
   await upsertUsageCounter(database, {
@@ -37,7 +83,7 @@ export async function ensureWorkspaceUsageBaselines(
     periodStart,
     periodEnd,
     quantity: 0,
-    limitQuantity: 1000,
+    limitQuantity: limits.aiRequestsLimit,
   });
 
   await upsertUsageCounter(database, {
@@ -46,7 +92,7 @@ export async function ensureWorkspaceUsageBaselines(
     periodStart,
     periodEnd,
     quantity: 0,
-    limitQuantity: 100000,
+    limitQuantity: limits.aiTokensLimit,
   });
 }
 
@@ -78,11 +124,13 @@ async function ensureWorkspaceUsageMetric(
     return existing;
   }
 
-  const defaults: Record<"seats" | "ai_requests" | "ai_tokens", number | null> = {
-    seats: null,
-    ai_requests: 1000,
-    ai_tokens: 100000,
-  };
+  const limits = getDefaultWorkspaceUsageLimits();
+  const defaults: Record<"seats" | "ai_requests" | "ai_tokens", number | null> =
+    {
+      seats: limits.seatsLimit,
+      ai_requests: limits.aiRequestsLimit,
+      ai_tokens: limits.aiTokensLimit,
+    };
 
   return upsertUsageCounter(database, {
     workspaceId,

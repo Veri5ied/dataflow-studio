@@ -1,5 +1,19 @@
-# DataFlow Studio API scaffold Dockerfile
-FROM node:22-alpine
+FROM node:22-alpine AS base
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+RUN corepack enable
+
 WORKDIR /app
-COPY . .
-CMD ["sh", "-c", "echo 'API container scaffold. Add runtime build steps.' && sleep infinity"]
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.base.json ./
+COPY apps ./apps
+COPY packages ./packages
+COPY tooling ./tooling
+
+RUN pnpm install --frozen-lockfile
+
+EXPOSE 3001
+
+CMD ["pnpm", "--filter", "@dataflow/api", "exec", "tsx", "src/main.ts"]

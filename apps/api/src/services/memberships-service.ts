@@ -1,5 +1,7 @@
 import { ApiError } from "../lib/api-error";
+import { isSelfHostedEnterprise } from "../lib/commercial-mode";
 import type { Database } from "../lib/db";
+import { findEnterpriseLicenseByWorkspaceId } from "../repositories/licenses-repository";
 import { findUserByEmail, findUserById } from "../repositories/users-repository";
 import {
   countActiveWorkspaceSeats,
@@ -111,7 +113,21 @@ export async function enforceWorkspaceSeatCapacity(
     getWorkspaceSeatLimit(database, workspaceId),
   ]);
 
-  if (seatLimit !== null && seatsUsed + additionalSeats > seatLimit) {
+  let effectiveSeatLimit = seatLimit;
+  if (isSelfHostedEnterprise() && effectiveSeatLimit === null) {
+    const license = await findEnterpriseLicenseByWorkspaceId(database, workspaceId);
+    if (!license || license.status !== "active" || license.expiresAt.getTime() <= Date.now()) {
+      throw new ApiError(
+        402,
+        "Enterprise license is required to add seats in self-host enterprise mode.",
+        "enterprise_license_required_for_seats",
+      );
+    }
+
+    effectiveSeatLimit = license.seatsMax;
+  }
+
+  if (effectiveSeatLimit !== null && seatsUsed + additionalSeats > effectiveSeatLimit) {
     throw new ApiError(
       409,
       "Seat limit reached for workspace subscription.",
@@ -119,7 +135,7 @@ export async function enforceWorkspaceSeatCapacity(
     );
   }
 
-  return { seatsUsed, seatLimit };
+  return { seatsUsed, seatLimit: effectiveSeatLimit };
 }
 
 export async function listWorkspaceMembersForUser(

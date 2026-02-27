@@ -6,10 +6,6 @@ const emptyStringToUndefined = (value: unknown) =>
 
 const optionalUrl = z.preprocess(emptyStringToUndefined, z.string().url().optional());
 const optionalNonEmptyString = z.preprocess(emptyStringToUndefined, z.string().min(1).optional());
-const optionalBillingProvider = z.preprocess(
-  emptyStringToUndefined,
-  z.enum(["stripe", "polar"]).optional()
-);
 const optionalAiProvider = z.preprocess(
   emptyStringToUndefined,
   z.enum(["openai", "anthropic", "google", "openai-compatible"]).optional(),
@@ -24,6 +20,8 @@ const optionalAiTemperature = z.preprocess(
 );
 
 const envSchema = z.object({
+  DEPLOYMENT_MODE: z.enum(["cloud", "self-host"]).optional(),
+  SELF_HOST_EDITION: z.enum(["community", "enterprise"]).optional(),
   OAUTH_GITHUB_CLIENT_ID: optionalNonEmptyString,
   OAUTH_GITHUB_CLIENT_SECRET: optionalNonEmptyString,
   OAUTH_GOOGLE_CLIENT_ID: optionalNonEmptyString,
@@ -47,13 +45,20 @@ const envSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: optionalNonEmptyString,
   AI_OPENAI_COMPATIBLE_API_KEY: optionalNonEmptyString,
   AI_OPENAI_COMPATIBLE_BASE_URL: optionalUrl,
-  BILLING_PROVIDER: optionalBillingProvider,
-  STRIPE_SECRET_KEY: optionalNonEmptyString,
-  STRIPE_WEBHOOK_SECRET: optionalNonEmptyString,
   POLAR_ACCESS_TOKEN: optionalNonEmptyString,
   POLAR_ORGANIZATION_ID: optionalNonEmptyString,
   POLAR_WEBHOOK_SECRET: optionalNonEmptyString,
-  TRIAL_DAYS: optionalPositiveInt
+  POLAR_CHECKOUT_BASE_URL: optionalUrl,
+  POLAR_PORTAL_BASE_URL: optionalUrl,
+  TRIAL_DAYS: optionalPositiveInt,
+  CLOUD_TRIAL_SEAT_LIMIT: optionalPositiveInt,
+  CLOUD_TRIAL_AI_REQUESTS_LIMIT: optionalPositiveInt,
+  CLOUD_TRIAL_AI_TOKENS_LIMIT: optionalPositiveInt,
+  CLOUD_PRO_SEAT_PRICE_CENTS: optionalPositiveInt,
+  CLOUD_PRO_AI_REQUESTS_LIMIT: optionalPositiveInt,
+  CLOUD_PRO_AI_TOKENS_LIMIT: optionalPositiveInt,
+  LICENSE_VERIFICATION_SECRET: optionalNonEmptyString,
+  LICENSE_SYNC_GRACE_HOURS: optionalPositiveInt,
 });
 
 export const env = envSchema.parse(process.env);

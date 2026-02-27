@@ -7,7 +7,7 @@ DataFlow Studio is a self-hosted, open-source, AI-powered collaborative database
 The project standard is **shadcn/ui with Base UI** primitives.
 
 - `packages/ui` is the shared component layer.
-- `apps/gui` consumes shared primitives/components.
+- `apps/web-gui` consumes shared primitives/components.
 - UI should follow shadcn-style composition patterns and tokenized Tailwind design.
 - Base UI primitives are the default low-level building blocks for accessibility and behavior.
 
@@ -28,13 +28,26 @@ Commercial model details are tracked in:
 
 ## Commercial model
 
-- One billing engine with two offers:
-  - Cloud Pro (self-serve)
-  - Enterprise (sales-led)
-- Billing providers: Stripe or Polar (polar.sh)
-- No permanent free cloud plan. Cloud onboarding is trial-first.
-- AI is metered by workspace quota/credits, not unlimited by default.
-- Self-hosted deployments remain supported; paid self-host is part of enterprise licensing strategy.
+- Cloud runtime uses Polar billing (trial-first, no permanent free cloud plan).
+- Self-host runtime has two editions:
+  - Community (AGPL)
+  - Enterprise (license key entitlements)
+- Billing and licensing are separate paths:
+  - Cloud: checkout/subscription/webhooks
+  - Self-host Enterprise: license activation/status/deactivation
+- AI access is mode-aware:
+  - Cloud: requires active/trialing billing state
+  - Self-host Community: BYOK model keys
+  - Self-host Enterprise: requires active license with AI entitlement
+
+Edition matrix and endpoint availability:
+
+- `docs/edition-matrix.md`
+
+## Licensing
+
+- Community edition is licensed under `AGPL-3.0-only` (see [`LICENSE`](./LICENSE)).
+- Enterprise/self-host commercial entitlements are managed through signed license keys.
 
 ## MVP scope
 
@@ -53,7 +66,7 @@ Commercial model details are tracked in:
 ```text
 dataflow-studio/
   apps/
-    gui/                    # Next.js web app (landing page + workspace views)
+    web-gui/                # TanStack Start web app (landing page + workspace views)
     api/                    # Hono API
   packages/
     ui/                     # Shared UI components (shadcn + Base UI)
@@ -82,7 +95,11 @@ All backend routes are under `/api/v1`.
 - Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables`, `/workspaces/:id/tables/:table`
 - Queries: `/workspaces/:id/query`, `/workspaces/:id/query/cancel`, `/workspaces/:id/query/:executionId`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
 - AI: `/ai/generate-sql`, `/ai/explain-query`
-- Billing: `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`, `/billing/webhook/stripe`, `/billing/webhook/polar`
+- Billing (Polar cloud): `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`, `/billing/webhook/polar`
+- Licensing (Enterprise/self-host): `/licenses/activate`, `/licenses/deactivate`, `/licenses/workspace/:workspaceId/status`
+- Runtime gating:
+  - Billing routes are enabled only in cloud mode.
+  - Licensing routes are enabled only in self-host enterprise mode.
 
 ## Local development
 
@@ -111,7 +128,7 @@ All backend routes are under `/api/v1`.
    ```
 5. Run GUI:
    ```bash
-   pnpm dev:gui
+   pnpm dev:web-gui
    ```
 6. Run API:
    ```bash
@@ -120,6 +137,8 @@ All backend routes are under `/api/v1`.
 
 ## Required environment variables
 
+- `DEPLOYMENT_MODE` (`cloud` or `self-host`)
+- `SELF_HOST_EDITION` (`community` or `enterprise`)
 - `OAUTH_GITHUB_CLIENT_ID`
 - `OAUTH_GITHUB_CLIENT_SECRET`
 - `OAUTH_GOOGLE_CLIENT_ID`
@@ -139,19 +158,28 @@ All backend routes are under `/api/v1`.
 - `AI_OPENAI_COMPATIBLE_BASE_URL` (optional)
 - `AI_PROVIDER_KEY` (legacy fallback, optional)
 - `APP_DATABASE_URL`
-- `BILLING_PROVIDER`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `POLAR_ACCESS_TOKEN`
-- `POLAR_ORGANIZATION_ID`
-- `POLAR_WEBHOOK_SECRET`
-- `TRIAL_DAYS`
+- Cloud mode env:
+  - `POLAR_ACCESS_TOKEN`
+  - `POLAR_ORGANIZATION_ID`
+  - `POLAR_WEBHOOK_SECRET`
+  - `POLAR_CHECKOUT_BASE_URL`
+  - `POLAR_PORTAL_BASE_URL`
+  - `TRIAL_DAYS`
+  - `CLOUD_TRIAL_SEAT_LIMIT`
+  - `CLOUD_TRIAL_AI_REQUESTS_LIMIT`
+  - `CLOUD_TRIAL_AI_TOKENS_LIMIT`
+  - `CLOUD_PRO_SEAT_PRICE_CENTS`
+  - `CLOUD_PRO_AI_REQUESTS_LIMIT`
+  - `CLOUD_PRO_AI_TOKENS_LIMIT`
+- Self-host enterprise mode env:
+  - `LICENSE_VERIFICATION_SECRET`
+  - `LICENSE_SYNC_GRACE_HOURS`
 
 ## Docker
 
 Scaffolded deployment files are in `tooling/docker/`:
 
-- `Dockerfile.gui`
+- `Dockerfile.web-gui`
 - `Dockerfile.api`
 - `docker-compose.yml`
 
@@ -163,6 +191,7 @@ Scaffolded deployment files are in `tooling/docker/`:
 - [Support guide](./support-guide.md)
 - [Changelog](./changelog.md)
 - [Billing model](./docs/billing-model.md)
+- [Edition matrix](./docs/edition-matrix.md)
 - [License](./LICENSE)
 
 ## Status
@@ -174,5 +203,7 @@ Repository is in `api-foundation-v1` with `auth-session-core` implementation mod
 - OAuth/session core is implemented with GitHub/Google callback exchange and JWT-protected API middleware.
 - Workspace membership flow includes invite/accept endpoints with seat-limit enforcement.
 - DB connection test/save and schema/table metadata endpoints are implemented for multiple relational engines.
-- Query engine execution/cancel, AI usage guardrails with real provider SDK integration, billing webhook sync, and API rate limiting are implemented.
+- Query engine execution/cancel, AI usage guardrails with real provider SDK integration, Polar webhook sync, and API rate limiting are implemented.
+- Billing routes are cloud-only and license routes are self-host enterprise-only via runtime mode gating.
+- Workspace bootstrap and seat/AI entitlement checks are mode-aware for Cloud Pro, Self-host Community, and Self-host Enterprise.
 - Remaining major milestones: GUI workspace flows and end-to-end product polish.

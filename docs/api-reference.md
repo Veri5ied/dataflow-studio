@@ -57,14 +57,25 @@ All routes are grouped under `/api/v1` in the API app.
 - `POST /billing/portal-session`
 - `GET /billing/workspace/:workspaceId/subscription`
 - `GET /billing/workspace/:workspaceId/usage`
-- `POST /billing/webhook/stripe`
 - `POST /billing/webhook/polar`
+- Billing provider is Polar-only.
+- Billing APIs are available only when `DEPLOYMENT_MODE=cloud`.
+- Checkout currently supports plan code: `cloud-pro-monthly`.
+
+## Licensing
+
+- `POST /licenses/activate`
+- `POST /licenses/deactivate`
+- `GET /licenses/workspace/:workspaceId/status`
+- Enterprise license key is signature-verified using `LICENSE_VERIFICATION_SECRET`.
+- Licensing APIs are available only when `DEPLOYMENT_MODE=self-host` and `SELF_HOST_EDITION=enterprise`.
 
 ## Access control
 
 - OAuth routes are public entry points.
 - Billing webhook routes are public (`/billing/webhook/*`).
 - Workspace, schema, query, AI, and non-webhook billing routes require authenticated session middleware.
+- License routes require authenticated session middleware.
 - Protected routes require `Authorization: Bearer <jwt>`.
 - `POST /auth/dev/session` returns a JWT for local testing using an existing `users.id`.
 - Membership management routes require workspace role checks:
@@ -73,7 +84,14 @@ All routes are grouped under `/api/v1` in the API app.
 - DB connection testing and creation routes require `owner` or `admin`.
 - Schema metadata routes require any active workspace membership.
 - Seat enforcement is applied on invite acceptance (`workspace_seat_limit_reached`).
+- Cloud mode returns `404` for `/billing/*` in self-host deployments.
+- Cloud/community modes return `404` for `/licenses/*` unless self-host enterprise mode is active.
 - AI endpoints enforce workspace usage limits (`ai_requests`, `ai_tokens`) and return `usage_limit_exceeded` when quota is exceeded.
+- AI entitlement checks are runtime-mode aware:
+  - Cloud: active/trialing billing required
+  - Self-host enterprise: active, non-expired license with AI entitlement required
+  - Self-host community: BYOK provider flow
+- License activation/deactivation requires `owner` or `admin`; status can be read by active workspace members.
 - Responses include `x-request-id` for tracing.
 - Rate limits:
   - General `/api/v1/*` limit

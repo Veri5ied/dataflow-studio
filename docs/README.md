@@ -2,6 +2,7 @@
 
 - `product-requirements.md`: full PRD, MVP scope, acceptance criteria, and future roadmap
 - `billing-model.md`: cloud/enterprise billing strategy, trial model, and AI metering policy
+- `edition-matrix.md`: Community vs Cloud Pro vs Enterprise capability matrix and API mode gating
 - `migration-strategy.md`: SQL-first runtime migrations with Drizzle schema workflow
 - `ui-system.md`: shadcn + Base UI decision and implementation conventions
 - `architecture.md`: high-level architecture and module boundaries

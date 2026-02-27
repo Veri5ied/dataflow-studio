@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { randomUUID } from "node:crypto";
 import { logger } from "@dataflow/utils";
+import { getCommercialRuntimeProfile } from "./lib/commercial-mode";
 import { requireAuth } from "./lib/auth";
 import { createRateLimitMiddleware } from "./lib/rate-limit";
 import { authRoutes } from "./routes/v1/auth";
@@ -11,6 +12,7 @@ import { queryRoutes } from "./routes/v1/queries";
 import { aiRoutes } from "./routes/v1/ai";
 import { billingRoutes } from "./routes/v1/billing";
 import { billingWebhookRoutes } from "./routes/v1/billing-webhooks";
+import { licenseRoutes } from "./routes/v1/licenses";
 
 const app = new Hono();
 
@@ -20,7 +22,12 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-app.get("/health", (c) => c.json({ status: "ok" }));
+app.get("/health", (c) =>
+  c.json({
+    status: "ok",
+    runtime: getCommercialRuntimeProfile(),
+  }),
+);
 
 app.route("/api/v1/auth", authRoutes);
 app.use(
@@ -54,12 +61,16 @@ app.route("/api/v1/workspaces", schemaRoutes);
 app.route("/api/v1/workspaces", queryRoutes);
 app.route("/api/v1/ai", aiRoutes);
 app.route("/api/v1/billing", billingRoutes);
+app.route("/api/v1/licenses", licenseRoutes);
 
 const port = Number(process.env.PORT ?? 3001);
 
 serve({
   fetch: app.fetch,
-  port
+  port,
 });
 
-logger.info({ port }, "DataFlow API listening");
+logger.info(
+  { port, runtime: getCommercialRuntimeProfile() },
+  "DataFlow API listening",
+);

@@ -14,7 +14,7 @@ test("billing adapter accepts valid hmac signature", () => {
 });
 
 test("billing adapter rejects invalid hmac signature", () => {
-  const adapter = getBillingProviderAdapter("stripe");
+  const adapter = getBillingProviderAdapter("polar");
   const payload = JSON.stringify({ id: "evt_2", type: "subscription.updated" });
   const secret = "test-secret";
 
@@ -23,7 +23,7 @@ test("billing adapter rejects invalid hmac signature", () => {
 });
 
 test("billing adapter allows missing secret for local mode", () => {
-  const adapter = getBillingProviderAdapter("stripe");
+  const adapter = getBillingProviderAdapter("polar");
   const payload = JSON.stringify({ id: "evt_local", type: "local" });
 
   const isValid = adapter.verifySignature(payload, null, null);

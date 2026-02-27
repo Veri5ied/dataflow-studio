@@ -2,10 +2,11 @@
   "name": "dataflow-studio",
   "version": "0.1.0",
   "private": true,
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "packageManager": "pnpm@9.12.3",
   "scripts": {
-    "dev:gui": "nx run gui:dev",
+    "dev:gui": "nx run web-gui:dev",
+    "dev:web-gui": "nx run web-gui:dev",
     "dev:api": "nx run api:dev",
     "db:migrate": "./tooling/scripts/migrate.sh",
     "db:seed": "./tooling/scripts/seed.sh",
