@@ -5,19 +5,14 @@ import { ApiError } from "./api-error";
 const userIdSchema = z.string().uuid();
 
 export function requireRequestUserId(c: Context) {
-  const userIdHeader = c.req.header("x-user-id");
-
-  if (!userIdHeader) {
+  const rawUserId = c.get("auth_user_id");
+  const parsed = userIdSchema.safeParse(rawUserId);
+  if (!parsed.success) {
     throw new ApiError(
       401,
-      "Missing x-user-id header. OAuth middleware should provide authenticated user id.",
-      "missing_user_id"
+      "Authenticated user id is missing from request context.",
+      "missing_authenticated_user"
     );
-  }
-
-  const parsed = userIdSchema.safeParse(userIdHeader);
-  if (!parsed.success) {
-    throw new ApiError(400, "x-user-id must be a valid UUID.", "invalid_user_id");
   }
 
   return parsed.data;

@@ -13,18 +13,22 @@ export async function upsertUsageCounter(
     periodEnd: Date;
     quantity: number;
     limitQuantity: number | null;
-  }
+  },
 ) {
   const [counter] = await executor
     .insert(usageCounters)
     .values(values)
     .onConflictDoUpdate({
-      target: [usageCounters.workspaceId, usageCounters.metricCode, usageCounters.periodStart],
+      target: [
+        usageCounters.workspaceId,
+        usageCounters.metricCode,
+        usageCounters.periodStart,
+      ],
       set: {
         periodEnd: values.periodEnd,
         limitQuantity: values.limitQuantity,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     })
     .returning();
 
@@ -34,10 +38,15 @@ export async function upsertUsageCounter(
 export async function findUsageCountersForPeriod(
   executor: DbExecutor,
   workspaceId: string,
-  periodStart: Date
+  periodStart: Date,
 ) {
   return executor
     .select()
     .from(usageCounters)
-    .where(and(eq(usageCounters.workspaceId, workspaceId), eq(usageCounters.periodStart, periodStart)));
+    .where(
+      and(
+        eq(usageCounters.workspaceId, workspaceId),
+        eq(usageCounters.periodStart, periodStart),
+      ),
+    );
 }

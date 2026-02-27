@@ -16,6 +16,16 @@ const optionalPositiveInt = z.preprocess(
 );
 
 const envSchema = z.object({
+  OAUTH_GITHUB_CLIENT_ID: optionalNonEmptyString,
+  OAUTH_GITHUB_CLIENT_SECRET: optionalNonEmptyString,
+  OAUTH_GOOGLE_CLIENT_ID: optionalNonEmptyString,
+  OAUTH_GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
+  OAUTH_GITHUB_REDIRECT_URI: optionalUrl,
+  OAUTH_GOOGLE_REDIRECT_URI: optionalUrl,
+  GUI_AUTH_SUCCESS_URL: optionalUrl,
+  APP_URL: optionalUrl,
+  NODE_ENV: z.enum(["development", "test", "production"]).optional(),
+  PORT: optionalPositiveInt,
   APP_DATABASE_URL: optionalUrl,
   REDIS_URL: optionalUrl,
   JWT_SECRET: optionalNonEmptyString,
