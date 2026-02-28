@@ -6,6 +6,7 @@
 - `migration-strategy.md`: SQL-first runtime migrations with Drizzle schema workflow
 - `ui-system.md`: shadcn + Base UI decision and implementation conventions
 - `architecture.md`: high-level architecture and module boundaries
+- `system-design-flow.md`: visual system flow diagrams (architecture, auth, query, AI, billing, licensing)
 - `api-reference.md`: API endpoints and contract notes
 - `api-test-cases-memberships.md`: workspace membership invite/accept test scenarios
 - `api-test-cases-schema.md`: DB connection and schema metadata test scenarios
