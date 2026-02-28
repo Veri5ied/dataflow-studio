@@ -192,6 +192,7 @@ Scaffolded deployment files are in `tooling/docker/`:
 - [Changelog](./changelog.md)
 - [Billing model](./docs/billing-model.md)
 - [Edition matrix](./docs/edition-matrix.md)
+- [System design flow](./docs/system-design-flow.md)
 - [License](./LICENSE)
 
 ## Status
