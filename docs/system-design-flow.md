@@ -6,12 +6,12 @@ This document is a visual map of how DataFlow Studio works today, with focus on 
 
 ```mermaid
 flowchart LR
-  U["User (Browser)"] --> WG["web-gui (TanStack Start)"]
-  WG --> API["api (Hono) /api/v1"]
+  U["User Browser"] --> WG["Web GUI (TanStack Start)"]
+  WG --> API["API (Hono) /api/v1"]
   API --> APPDB["App PostgreSQL (metadata)"]
-  API --> REDIS["Redis (cache/rate-limit/session)"]
-  API --> EXTDB["External relational DBs (postgresql/mysql/sqlite/sqlserver)"]
-  API --> AI["LLM Providers via ai-engine (OpenAI/Anthropic/Google/OpenAI-compatible)"]
+  API --> REDIS["Redis (cache rate-limit session)"]
+  API --> EXTDB["External relational DBs"]
+  API --> AI["LLM Providers via ai-engine"]
 
   subgraph MONO["Nx Monorepo"]
     WG
@@ -41,8 +41,8 @@ flowchart TD
   B -->|cloud| C["Cloud runtime"]
   B -->|self-host| D{"SELF_HOST_EDITION"}
 
-  C --> C1["Billing routes enabled (/billing/*)"]
-  C --> C2["License routes disabled (/licenses/* -> 404)"]
+  C --> C1["Billing routes enabled"]
+  C --> C2["License routes disabled"]
   C --> C3["AI requires active/trialing cloud billing"]
 
   D -->|community| E["Self-host Community"]
@@ -53,7 +53,7 @@ flowchart TD
   D -->|enterprise| F["Self-host Enterprise"]
   F --> F1["Billing routes disabled"]
   F --> F2["License routes enabled"]
-  F --> F3["AI requires active non-expired license + aiEnabled=true"]
+  F --> F3["AI requires active license and AI entitlement"]
 ```
 
 ## 3) OAuth sign-in flow
@@ -62,13 +62,13 @@ flowchart TD
 sequenceDiagram
   autonumber
   participant Browser
-  participant Web as web-gui
-  participant API as api/auth routes
+  participant Web as Web GUI
+  participant API as Auth API
   participant Provider as OAuth Provider
   participant DB as App DB
 
   Browser->>Web: Click "Continue with GitHub/Google"
-  Web->>API: GET /api/v1/auth/oauth/{provider}
+  Web->>API: GET /api/v1/auth/oauth/:provider
   API-->>Browser: Redirect to provider authorize URL
   Browser->>Provider: Authorize app
   Provider-->>API: Callback with code + state
@@ -84,10 +84,10 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  participant Web as web-gui
-  participant API as api/workspaces/:id/query
+  participant Web as Web GUI
+  participant API as Query API
   participant DB as App DB
-  participant Conn as db-connectors
+  participant Conn as DB Connector
   participant Ext as External DB
 
   Web->>API: POST /workspaces/:id/query (sqlText, limit, offset)
@@ -105,11 +105,11 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  participant Web as web-gui
-  participant API as api/ai routes
+  participant Web as Web GUI
+  participant API as AI API
   participant DB as App DB
-  participant Guard as Commercial + usage guardrails
-  participant Engine as ai-engine
+  participant Guard as Commercial and usage guardrails
+  participant Engine as AI Engine
   participant LLM as Model Provider
 
   Web->>API: POST /ai/generate-sql or /ai/explain-query
@@ -130,7 +130,7 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   participant Cloud as Cloud Admin
-  participant API as api/billing routes
+  participant API as Billing API
   participant Polar as Polar
   participant DB as App DB
 
@@ -145,7 +145,7 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   participant Ent as Enterprise Admin
-  participant API as api/licenses routes
+  participant API as License API
   participant DB as App DB
 
   Ent->>API: POST /licenses/activate (licenseKey, fingerprint)
