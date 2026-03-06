@@ -61,6 +61,22 @@ Edition matrix and endpoint availability:
 - AI SQL generation and SQL explanation
 - Docker-first self-hosting path
 
+## Current implementation
+
+- Backend foundation is in place:
+  - internal app schema + migrations
+  - OAuth/session middleware
+  - workspace, membership, billing, licensing, AI, schema, and query services
+- Landing page is implemented in `apps/web-gui` on TanStack Start.
+- Landing page demo supports two modes:
+  - sample datasets rendered locally in-browser
+  - live `Connect your own` flow via public playground API routes
+- Public playground can:
+  - test a relational DB connection
+  - fetch live table lists
+  - run read-only queries without persisting credentials
+- Workspace dashboard/product GUI flows are still pending.
+
 ## Monorepo layout
 
 ```text
@@ -95,6 +111,7 @@ All backend routes are under `/api/v1`.
 - Schema: `/workspaces/:id/schemas`, `/workspaces/:id/tables`, `/workspaces/:id/tables/:table`
 - Queries: `/workspaces/:id/query`, `/workspaces/:id/query/cancel`, `/workspaces/:id/query/:executionId`, `/workspaces/:id/history`, `/workspaces/:id/save-query`
 - AI: `/ai/generate-sql`, `/ai/explain-query`
+- Public playground: `/playground/test-connection`, `/playground/schema`, `/playground/query`
 - Billing (Polar cloud): `/billing/plans`, `/billing/checkout-session`, `/billing/portal-session`, `/billing/workspace/:workspaceId/usage`, `/billing/webhook/polar`
 - Licensing (Enterprise/self-host): `/licenses/activate`, `/licenses/deactivate`, `/licenses/workspace/:workspaceId/status`
 - Runtime gating:
@@ -158,6 +175,9 @@ All backend routes are under `/api/v1`.
 - `AI_OPENAI_COMPATIBLE_BASE_URL` (optional)
 - `AI_PROVIDER_KEY` (legacy fallback, optional)
 - `APP_DATABASE_URL`
+- Public landing-page playground env:
+  - `PUBLIC_PLAYGROUND_ENABLED`
+  - `PUBLIC_PLAYGROUND_ALLOW_PRIVATE_HOSTS`
 - Cloud mode env:
   - `POLAR_ACCESS_TOKEN`
   - `POLAR_ORGANIZATION_ID`
@@ -177,7 +197,7 @@ All backend routes are under `/api/v1`.
 
 ## Docker
 
-Scaffolded deployment files are in `tooling/docker/`:
+Runnable deployment files are in `tooling/docker/`:
 
 - `Dockerfile.web-gui`
 - `Dockerfile.api`
@@ -197,7 +217,7 @@ Scaffolded deployment files are in `tooling/docker/`:
 
 ## Status
 
-Repository is in `api-foundation-v1` with `auth-session-core` implementation mode.
+Repository is past scaffold-only state and now has a working backend foundation plus a real landing page experience.
 
 - Internal DB schema + migrations are implemented (SQL-first runtime, Drizzle schema/query layer).
 - Workspace and billing API routes are wired to repositories/services with real DB reads/writes.
@@ -207,4 +227,11 @@ Repository is in `api-foundation-v1` with `auth-session-core` implementation mod
 - Query engine execution/cancel, AI usage guardrails with real provider SDK integration, Polar webhook sync, and API rate limiting are implemented.
 - Billing routes are cloud-only and license routes are self-host enterprise-only via runtime mode gating.
 - Workspace bootstrap and seat/AI entitlement checks are mode-aware for Cloud Pro, Self-host Community, and Self-host Enterprise.
-- Remaining major milestones: GUI workspace flows and end-to-end product polish.
+- Web landing page is implemented on TanStack Start and includes:
+  - product marketing sections
+  - sample in-browser demo datasets
+  - live `Connect your own` playground backed by public API routes
+- Remaining major milestones:
+  - authenticated workspace product screens in `apps/web-gui`
+  - deeper end-to-end auth/billing/product polish
+  - production deployment validation across all runtime modes

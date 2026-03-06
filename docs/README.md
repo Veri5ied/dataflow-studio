@@ -8,7 +8,7 @@
 - `architecture.md`: high-level architecture and module boundaries
 - `system-design-flow.md`: visual system flow diagrams (architecture, auth, query, AI, billing, licensing)
 - `api-reference.md`: API endpoints and contract notes
+- `setup.md`: local development, deployment instructions, and landing-page playground testing
 - `api-test-cases-memberships.md`: workspace membership invite/accept test scenarios
 - `api-test-cases-schema.md`: DB connection and schema metadata test scenarios
 - `api-test-cases-query-ai.md`: query engine and AI guardrail test scenarios
-- `setup.md`: local development and deployment instructions

@@ -34,3 +34,6 @@ All notable changes to this project will be documented in this file.
 - Docker deployment scaffolds replaced with runnable app images (`Dockerfile.api`, `Dockerfile.web-gui`, compose updates)
 - Billing webhook verification/idempotency and subscription sync processing
 - API hardening: request IDs, route rate-limiting, and automated backend tests
+- TanStack landing page implementation for `apps/web-gui` with real product sections and interactive studio demo
+- Public playground API for landing-page `Connect your own` flow (connection test, live schema discovery, read-only queries)
+- GitHub doc/security/self-hosting links wired into the landing page footer and CTA surfaces

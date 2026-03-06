@@ -50,6 +50,21 @@ All routes are grouped under `/api/v1` in the API app.
   - `baseUrl`: optional, required for `openai-compatible`
   - `temperature`: optional (`0` to `2`)
 
+## Public playground
+
+- `POST /playground/test-connection`
+- `POST /playground/schema`
+- `POST /playground/query`
+- Purpose:
+  - powers the landing page `Connect your own` experience
+  - does not persist credentials
+  - supports connection testing, live table discovery, and read-only query execution
+- Constraints:
+  - route family is disabled unless `PUBLIC_PLAYGROUND_ENABLED=true`
+  - private/local hosts are blocked unless `PUBLIC_PLAYGROUND_ALLOW_PRIVATE_HOSTS=true`
+  - only read-only `SELECT`/`WITH`/`PRAGMA` queries are allowed
+  - SQLite is intentionally blocked in this public flow
+
 ## Billing
 
 - `GET /billing/plans`
@@ -73,6 +88,7 @@ All routes are grouped under `/api/v1` in the API app.
 ## Access control
 
 - OAuth routes are public entry points.
+- Public playground routes are public entry points when enabled.
 - Billing webhook routes are public (`/billing/webhook/*`).
 - Workspace, schema, query, AI, and non-webhook billing routes require authenticated session middleware.
 - License routes require authenticated session middleware.
@@ -97,3 +113,4 @@ All routes are grouped under `/api/v1` in the API app.
   - General `/api/v1/*` limit
   - Stricter `/api/v1/ai/*` limit
   - Dedicated `/api/v1/billing/webhook/*` limit
+  - Dedicated `/api/v1/playground/*` limit

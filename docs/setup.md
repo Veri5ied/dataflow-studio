@@ -8,6 +8,20 @@
 6. Start web GUI: `pnpm dev:web-gui`
 7. Start API: `pnpm dev:api`
 
+## Landing page playground local testing
+
+To test the landing page `Connect your own` flow locally, add these to `.env` before starting the API:
+
+- `PUBLIC_PLAYGROUND_ENABLED=true`
+- `PUBLIC_PLAYGROUND_ALLOW_PRIVATE_HOSTS=true`
+
+Notes:
+
+- `PUBLIC_PLAYGROUND_ENABLED` turns on the public playground endpoints used by the landing page.
+- `PUBLIC_PLAYGROUND_ALLOW_PRIVATE_HOSTS` is only for local/private-network testing (`localhost`, Docker networks, LAN DBs).
+- Public playground only allows read-only queries.
+- SQLite is blocked in the public playground because it would expose server file paths.
+
 ## Runtime mode selection
 
 Set mode in `.env` before starting API:
@@ -85,6 +99,44 @@ Set mode in `.env` before starting API:
    - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/tables?schema=public`
 6. Fetch table metadata:
    - `GET http://localhost:3001/api/v1/workspaces/{workspaceId}/tables/users?schema=public`
+
+## Landing page playground smoke tests
+
+These routes are public and are used by the web landing page when a visitor clicks `Connect your own`.
+
+1. Test external DB credentials:
+   - `POST http://localhost:3001/api/v1/playground/test-connection`
+   - Body:
+     ```json
+     {
+       "databaseEngine": "postgresql",
+       "host": "localhost",
+       "port": 5432,
+       "databaseName": "dataflowstudio",
+       "username": "postgres",
+       "password": "admin",
+       "sslMode": "disable"
+     }
+     ```
+2. Fetch live schema/tables without saving credentials:
+   - `POST http://localhost:3001/api/v1/playground/schema`
+3. Run a read-only query without saving credentials:
+   - `POST http://localhost:3001/api/v1/playground/query`
+   - Body:
+     ```json
+     {
+       "databaseEngine": "postgresql",
+       "host": "localhost",
+       "port": 5432,
+       "databaseName": "dataflowstudio",
+       "username": "postgres",
+       "password": "admin",
+       "sslMode": "disable",
+       "sqlText": "select * from users limit 10"
+     }
+     ```
+4. Connection string form also works:
+   - `postgresql://postgres:admin@localhost:5432/dataflowstudio?sslmode=disable`
 
 ## Query engine smoke tests
 
@@ -202,4 +254,4 @@ These endpoints are available only in cloud mode.
      }
      ```
 
-Docker scaffold files are in `tooling/docker`.
+Docker deployment files are in `tooling/docker`.
