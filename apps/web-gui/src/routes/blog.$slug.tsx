@@ -2,8 +2,8 @@ import { createFileRoute, notFound } from '@tanstack/react-router'
 import { MDXContent } from '@content-collections/mdx/react'
 import { allBlogs } from 'content-collections'
 import { SITE_URL } from '#/lib/site'
-import { MdxCallout } from '#/components/MdxCallout'
-import { MdxMetrics } from '#/components/MdxMetrics'
+import { MdxCallout } from '#/components/mdx-callout'
+import { MdxMetrics } from '#/components/mdx-metrics'
 
 export const Route = createFileRoute('/blog/$slug')({
   loader: ({ params }) => {
