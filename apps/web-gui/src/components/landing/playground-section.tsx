@@ -234,6 +234,28 @@ function mapSchemaResponseToDatabase(
   };
 }
 
+function mapDemoDatabaseToPlayground(
+  database: DemoDatabase,
+): PlaygroundDatabase {
+  const tables = Object.fromEntries(
+    Object.entries(database.tables).map(([tableName, table]) => [
+      tableName,
+      {
+        rows: table.rows,
+        cols: table.cols,
+        queryName: tableName,
+        displayName: tableName,
+      },
+    ]),
+  );
+
+  return {
+    name: database.name,
+    engine: database.engine,
+    tables,
+  };
+}
+
 export function PlaygroundSection() {
   const [connectTab, setConnectTab] = useState<ConnectTab>("demo");
   const [selectedDemo, setSelectedDemo] =
@@ -323,7 +345,7 @@ export function PlaygroundSection() {
   function connectDemo() {
     setLiveConnectionPayload(null);
     setConnectionStatus(buildInitialConnectionStatus());
-    openStudio(demoDbs[selectedDemo] as any, selectedDemo);
+    openStudio(mapDemoDatabaseToPlayground(demoDbs[selectedDemo]), selectedDemo);
   }
 
   async function testConnection() {
