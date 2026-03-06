@@ -13,6 +13,7 @@ import { aiRoutes } from "./routes/v1/ai";
 import { billingRoutes } from "./routes/v1/billing";
 import { billingWebhookRoutes } from "./routes/v1/billing-webhooks";
 import { licenseRoutes } from "./routes/v1/licenses";
+import { playgroundRoutes } from "./routes/v1/playground";
 
 const app = new Hono();
 
@@ -30,6 +31,15 @@ app.get("/health", (c) =>
 );
 
 app.route("/api/v1/auth", authRoutes);
+app.use(
+  "/api/v1/playground/*",
+  createRateLimitMiddleware({
+    keyPrefix: "playground",
+    windowMs: 60_000,
+    maxRequests: 30,
+  }),
+);
+app.route("/api/v1/playground", playgroundRoutes);
 app.use(
   "/api/v1/billing/webhook/*",
   createRateLimitMiddleware({

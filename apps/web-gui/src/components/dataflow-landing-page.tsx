@@ -164,7 +164,7 @@ export function DataflowLandingPage() {
               Try the API playground
             </a>
             <a
-              href="https://github.com/Veri5ied/dataflow-studio"
+              href="https://github.com/Veri5ied/dataflow-studio/blob/main/docs/setup.md"
               className="btn btn-ghost"
               target="_blank"
               rel="noreferrer"
@@ -202,7 +202,7 @@ export function DataflowLandingPage() {
             <h2 className="section-title">
               Everything your team needs.
               <br />
-              Nothing it doesn\'t.
+              Nothing it doesn't.
             </h2>
           </div>
           <div style={{ paddingTop: "8px" }}>
@@ -215,7 +215,7 @@ export function DataflowLandingPage() {
               }}
             >
               Built for engineers who want speed, AI assistance, and real
-              collaboration — without giving up control over their data or
+              collaboration without giving up control over their data or
               infrastructure.
             </p>
             <div

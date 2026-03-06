@@ -18,6 +18,13 @@ const optionalAiTemperature = z.preprocess(
   emptyStringToUndefined,
   z.coerce.number().min(0).max(2).optional(),
 );
+const optionalBoolean = z.preprocess(
+  emptyStringToUndefined,
+  z
+    .union([z.boolean(), z.enum(["true", "false"])])
+    .transform((value) => value === true || value === "true")
+    .optional(),
+);
 
 const envSchema = z.object({
   DEPLOYMENT_MODE: z.enum(["cloud", "self-host"]).optional(),
@@ -59,6 +66,8 @@ const envSchema = z.object({
   CLOUD_PRO_AI_TOKENS_LIMIT: optionalPositiveInt,
   LICENSE_VERIFICATION_SECRET: optionalNonEmptyString,
   LICENSE_SYNC_GRACE_HOURS: optionalPositiveInt,
+  PUBLIC_PLAYGROUND_ENABLED: optionalBoolean,
+  PUBLIC_PLAYGROUND_ALLOW_PRIVATE_HOSTS: optionalBoolean,
 });
 
 export const env = envSchema.parse(process.env);

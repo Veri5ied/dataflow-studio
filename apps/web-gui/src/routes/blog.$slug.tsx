@@ -1,11 +1,11 @@
-import { createFileRoute, notFound } from '@tanstack/react-router'
-import { MDXContent } from '@content-collections/mdx/react'
-import { allBlogs } from 'content-collections'
-import { SITE_URL } from '#/lib/site'
-import { MdxCallout } from '#/components/mdx-callout'
-import { MdxMetrics } from '#/components/mdx-metrics'
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { MDXContent } from "@content-collections/mdx/react";
+import { allBlogs } from "content-collections";
+import { SITE_URL } from "#/lib/site";
+import { MdxCallout } from "#/components/mdx-callout";
+import { MdxMetrics } from "#/components/mdx-metrics";
 
-export const Route = createFileRoute('/blog/$slug')({
+export const Route = createFileRoute("/blog/$slug")({
   loader: ({ params }) => {
     const post = Array.from(
       new Map(
@@ -16,31 +16,31 @@ export const Route = createFileRoute('/blog/$slug')({
           )
           .map((entry) => [entry.slug, entry]),
       ).values(),
-    ).find((entry) => entry.slug === params.slug)
-    if (!post) throw notFound()
-    return post
+    ).find((entry) => entry.slug === params.slug);
+    if (!post) throw notFound();
+    return post;
   },
   head: ({ loaderData, params }) => {
-    const title = loaderData?.title ?? 'Post'
-    const description = loaderData?.description ?? ''
-    const image = loaderData?.heroImage ?? '/images/lagoon-1.svg'
+    const title = loaderData?.title ?? "Post";
+    const description = loaderData?.description ?? "";
+    const image = loaderData?.heroImage ?? "/images/lagoon-1.svg";
     return {
-      links: [{ rel: 'canonical', href: `${SITE_URL}/blog/${params.slug}` }],
+      links: [{ rel: "canonical", href: `${SITE_URL}/blog/${params.slug}` }],
       meta: [
         { title },
-        { name: 'description', content: description },
+        { name: "description", content: description },
         {
-          property: 'og:image',
-          content: image.startsWith('http') ? image : `${SITE_URL}${image}`,
+          property: "og:image",
+          content: image.startsWith("http") ? image : `${SITE_URL}${image}`,
         },
       ],
-    }
+    };
   },
   component: BlogPost,
-})
+});
 
 function BlogPost() {
-  const post = Route.useLoaderData()
+  const post = Route.useLoaderData();
 
   return (
     <main className="page-wrap px-4 pb-12 pt-16">
@@ -66,10 +66,10 @@ function BlogPost() {
               components={{ MdxCallout, MdxMetrics }}
             />
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: post.html ?? '' }} />
+            <div dangerouslySetInnerHTML={{ __html: post.html ?? "" }} />
           )}
         </div>
       </article>
     </main>
-  )
+  );
 }

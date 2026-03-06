@@ -1,10 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { DataflowLandingPage } from '../components/dataflow-landing-page'
+import { createFileRoute } from "@tanstack/react-router";
+import { DataflowLandingPage } from "../components/dataflow-landing-page";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: Home,
-})
+});
 
 function Home() {
-  return <DataflowLandingPage />
+  return <DataflowLandingPage />;
 }

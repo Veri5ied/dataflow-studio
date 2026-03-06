@@ -1,12 +1,19 @@
-import { Link } from '@tanstack/react-router'
-import { LogoMark } from './logo-mark'
+import { Link } from "@tanstack/react-router";
+import { LogoMark } from "./logo-mark";
 
 export default function SiteFooter() {
   return (
     <footer>
       <div className="footer-left">
-        <Link to="/" className="nav-brand footer-brand" aria-label="DataFlow Studio home">
-          <LogoMark className="nav-logo-mark footer-logo-mark" iconClassName="footer-logo-icon" />
+        <Link
+          to="/"
+          className="nav-brand footer-brand"
+          aria-label="DataFlow Studio home"
+        >
+          <LogoMark
+            className="nav-logo-mark footer-logo-mark"
+            iconClassName="footer-logo-icon"
+          />
           <span className="footer-copy">DataFlow Studio</span>
         </Link>
         <span className="footer-copy">· TypeScript + Hono + TanStack</span>
@@ -18,14 +25,42 @@ export default function SiteFooter() {
       </div>
 
       <div className="footer-links">
-        <a href="https://github.com/Veri5ied/dataflow-studio" target="_blank" rel="noreferrer">
+        <a
+          href="https://github.com/Veri5ied/dataflow-studio"
+          target="_blank"
+          rel="noreferrer"
+        >
           GitHub
         </a>
-        <a href="#">Docs</a>
-        <a href="#">Changelog</a>
-        <a href="#">Security</a>
-        <a href="#">Self-hosting</a>
+        <a
+          href="https://github.com/Veri5ied/dataflow-studio/blob/main/docs/README.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Docs
+        </a>
+        <a
+          href="https://github.com/Veri5ied/dataflow-studio/blob/main/changelog.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Changelog
+        </a>
+        <a
+          href="https://github.com/Veri5ied/dataflow-studio/blob/main/security-policy.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Security
+        </a>
+        <a
+          href="https://github.com/Veri5ied/dataflow-studio/blob/main/docs/setup.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Self-hosting
+        </a>
       </div>
     </footer>
-  )
+  );
 }
